@@ -17,10 +17,25 @@
       <label for="openaiBaseUrl">Base URL</label>
       <input type="text" id="openaiBaseUrl" placeholder="e.g. http://localhost:1234/v1">
     </div>
+
     <div class="form-group">
-      <label for="openaiApiKey">API Key (Optional)</label>
-      <input type="password" id="openaiApiKey" placeholder="Enter API Key if needed">
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <input type="checkbox" id="showApiKey" style="width: auto; margin-right: 8px;">
+        <label for="showApiKey" style="margin-bottom: 0; cursor: pointer;">API Keyを使用する（オンラインLLM用）</label>
+      </div>
+      <div id="apiKeyContainer" style="display: none;">
+        <div class="warning-box"
+          style="background-color: rgba(207, 102, 121, 0.1); border: 1px solid #cf6679; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <p style="color: #cf6679; margin: 0; font-size: 13px;">
+            <strong>⚠️ 警告:</strong>
+            オンラインLLMを使用する場合、閲覧中のすべてのページ内容が外部サーバーに自動送信されます。これには個人情報や機密情報が含まれる可能性があり、外部への流出は避けられません。このリスクを完全に理解し、許容できる場合のみ使用してください。
+          </p>
+        </div>
+        <label for="openaiApiKey">API Key</label>
+        <input type="password" id="openaiApiKey" placeholder="Enter API Key">
+      </div>
     </div>
+
     <div class="form-group">
       <label for="openaiModel">Model Name</label>
       <input type="text" id="openaiModel" placeholder="e.g. local-model">

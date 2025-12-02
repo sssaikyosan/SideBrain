@@ -12,7 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('openaiBaseUrl').value = items.openaiBaseUrl;
     }
 
-    if (items.openaiApiKey) document.getElementById('openaiApiKey').value = items.openaiApiKey;
+    const apiKeyContainer = document.getElementById('apiKeyContainer');
+    const showApiKeyCheckbox = document.getElementById('showApiKey');
+
+    if (items.openaiApiKey) {
+      document.getElementById('openaiApiKey').value = items.openaiApiKey;
+      showApiKeyCheckbox.checked = true;
+      apiKeyContainer.style.display = 'block';
+    } else {
+      showApiKeyCheckbox.checked = false;
+      apiKeyContainer.style.display = 'none';
+    }
 
     if (!items.openaiModel) {
       document.getElementById('openaiModel').value = "local-model";
@@ -21,11 +31,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Toggle API Key visibility
+  document.getElementById('showApiKey').addEventListener('change', (e) => {
+    const apiKeyContainer = document.getElementById('apiKeyContainer');
+    if (e.target.checked) {
+      apiKeyContainer.style.display = 'block';
+    } else {
+      apiKeyContainer.style.display = 'none';
+      // Optional: Clear API key when unchecked? No, user might just want to hide it.
+      // But if they uncheck, maybe they mean "don't use it".
+      // For now, just hide.
+    }
+  });
+
   // Save values
   document.getElementById('saveBtn').addEventListener('click', () => {
     const openaiBaseUrl = document.getElementById('openaiBaseUrl').value;
-    const openaiApiKey = document.getElementById('openaiApiKey').value;
+    let openaiApiKey = document.getElementById('openaiApiKey').value;
     const openaiModel = document.getElementById('openaiModel').value;
+    const showApiKey = document.getElementById('showApiKey').checked;
+
+    if (!showApiKey) {
+      openaiApiKey = '';
+    }
 
     chrome.storage.local.set({
       llmProvider: 'openai', // Force provider to openai compatible
