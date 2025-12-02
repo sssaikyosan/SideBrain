@@ -157,7 +157,10 @@ export async function performBrowserSearch(queries) {
             combinedText += itemText;
         }
 
-        return combinedText;
+        return {
+            text: combinedText,
+            items: searchResults
+        };
 
     } catch (err) {
         console.error("Browser Search Error:", err);

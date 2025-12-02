@@ -177,7 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUI(tabId, currentTabId);
 
                     // Perform Search
-                    const searchResults = await performBrowserSearch([nextStep.query]);
+                    const searchResultData = await performBrowserSearch([nextStep.query]);
+                    const searchResultsText = searchResultData.text;
                     state.searchHistory.push(nextStep.query);
 
                     if (state.analysisId !== myAnalysisId) return;
@@ -192,7 +193,70 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateUI(tabId, currentTabId, { flash: false });
                     } : undefined;
 
-                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal, onSummaryUpdate);
+                    let newSummary = await updateSummary(state.summary, searchResultsText, state.intent, config, signal, onSummaryUpdate);
+
+                    // Append Reference Links
+                    // Extract existing references from current summary if any
+                    let existingRefs = "";
+                    let contentWithoutRefs = newSummary;
+                    const refSplit = newSummary.split("\n### 参照リンク\n");
+                    if (refSplit.length > 1) {
+                        contentWithoutRefs = refSplit[0];
+                        existingRefs = refSplit[1];
+                    }
+
+                    // Also check state.summary for previous refs if LLM removed them (it shouldn't but just in case)
+                    // Actually, updateSummary prompt asks to update summary, so it might rewrite everything.
+                    // We should maintain a separate list of references in state or extract them from previous state.summary
+                    // Simpler approach: Extract from previous state.summary before update
+
+                    // Let's use a more robust approach:
+                    // We will append new links to the end.
+                    // If the LLM preserved the old links, great. If not, we might lose them if we don't handle it carefully.
+                    // Since we instructed LLM NOT to output links, newSummary shouldn't have them.
+                    // But we want to keep "old" links that were in state.summary?
+                    // The user wants to "add to" the list, not delete old ones.
+
+                    // 1. Get existing links from state.summary (before update)
+                    const oldSummary = state.summary || "";
+                    const oldRefSplit = oldSummary.split("\n### 参照リンク\n");
+                    let allLinks = [];
+                    if (oldRefSplit.length > 1) {
+                        // Parse existing links
+                        const lines = oldRefSplit[1].split('\n');
+                        lines.forEach(line => {
+                            const match = line.match(/- \[(.*?)\]\((.*?)\)/);
+                            if (match) {
+                                allLinks.push({ title: match[1], url: match[2] });
+                            }
+                        });
+                    }
+
+                    // 2. Add new links
+                    if (searchResultData.items && searchResultData.items.length > 0) {
+                        searchResultData.items.forEach(item => {
+                            // Avoid duplicates
+                            if (!allLinks.some(link => link.url === item.url)) {
+                                allLinks.push({ title: item.title, url: item.url });
+                            }
+                        });
+                    }
+
+                    // 3. Reconstruct summary
+                    // newSummary is the fresh content from LLM (without links)
+                    // We assume LLM strictly followed instruction and didn't output links.
+                    // If LLM did output links despite instruction, we might have duplication if we are not careful,
+                    // but we removed the instruction so it should be fine.
+
+                    let finalSummary = newSummary;
+                    if (allLinks.length > 0) {
+                        finalSummary += "\n\n### 参照リンク\n";
+                        allLinks.forEach(link => {
+                            finalSummary += `- [${link.title}](${link.url})\n`;
+                        });
+                    }
+
+                    state.summary = finalSummary;
 
                     state.loading = false; // 一旦完了
                     updateUI(tabId, currentTabId);
