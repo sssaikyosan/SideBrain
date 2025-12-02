@@ -14,7 +14,10 @@ export function initUI() {
         errorMsg: document.getElementById('errorMsg'),
         settingsBtn: document.getElementById('settingsBtn'),
         toggleIntentBtn: document.getElementById('toggleIntentBtn'),
-        toggleIcon: document.getElementById('toggleIcon')
+        toggleIcon: document.getElementById('toggleIcon'),
+        toggleRefsBtn: document.getElementById('toggleRefsBtn'),
+        toggleRefsIcon: document.getElementById('toggleRefsIcon'),
+        refsContent: document.getElementById('refsContent')
     };
 
     elements.settingsBtn.addEventListener('click', () => {
@@ -107,6 +110,29 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
                 void elements.summaryContent.offsetWidth; // Trigger reflow
                 elements.summaryContent.classList.add('flash-update');
             }
+        }
+
+        // References
+        if (state.references && state.references.length > 0) {
+            let refsHtml = "<ul>";
+            state.references.forEach(ref => {
+                refsHtml += `<li><a href="${ref.url}" target="_blank" rel="noopener noreferrer">${ref.title}</a></li>`;
+            });
+            refsHtml += "</ul>";
+            elements.refsContent.innerHTML = refsHtml;
+            elements.toggleRefsBtn.parentElement.style.display = 'block';
+
+            if (state.refsVisible) {
+                elements.refsContent.style.display = 'block';
+                elements.toggleRefsIcon.textContent = '▲';
+                elements.toggleRefsBtn.style.borderRadius = '8px 8px 0 0';
+            } else {
+                elements.refsContent.style.display = 'none';
+                elements.toggleRefsIcon.textContent = '▼';
+                elements.toggleRefsBtn.style.borderRadius = '8px';
+            }
+        } else {
+            elements.toggleRefsBtn.parentElement.style.display = 'none';
         }
 
         // Add click listeners to all links in resultsArea to ensure they open in new tab

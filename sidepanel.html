@@ -30,6 +30,17 @@
             <div class="card">
                 <div id="summaryContent" class="result-content"></div>
             </div>
+
+            <div class="card" style="padding: 0; border: none; background: none; box-shadow: none; margin-top: 16px;">
+                <button id="toggleRefsBtn" class="action-btn"
+                    style="width: 100%; text-align: left; padding: 8px 12px; margin: 0; display: flex; justify-content: space-between; align-items: center; border-radius: 8px;">
+                    <span>参照リンクを表示</span>
+                    <span id="toggleRefsIcon">▼</span>
+                </button>
+                <div id="refsContent" class="result-content"
+                    style="display: none; padding: 12px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; margin-top: -4px;">
+                </div>
+            </div>
         </div>
 
         <div id="loading" class="loading" style="display: none;">
