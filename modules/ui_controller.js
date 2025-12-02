@@ -72,6 +72,13 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
                 linkText = href.text;
             }
 
+            // Disable auto-linking for raw URLs in text
+            // If the link text is exactly the same as the href (or very similar), it's likely an autolink.
+            // We want to keep explicit markdown links [text](url) but disable raw http://...
+            if (linkText === linkHref || linkText === decodeURI(linkHref)) {
+                return linkText;
+            }
+
             return `<a href="${linkHref}" title="${linkTitle || ''}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
         };
         marked.setOptions({ renderer: renderer });
