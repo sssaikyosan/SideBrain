@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pageData = await getPageContent(tabId, expectedUrl);
 
             // 2. Initial Intent Inference
+            // 2. Initial Intent Inference
             const intentData = await inferIntentAndQueries(pageData, config);
 
             if (state.analysisId !== myAnalysisId) return; // Stop if reset happened
@@ -187,11 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
             state.intent = intentData.intent;
             updateUI(tabId);
 
-            // 3. Continuous Loop
+            let nextStep = null;
+            if (intentData.query) {
+                nextStep = { shouldSearch: true, query: intentData.query };
+            }
+
             // 3. Continuous Loop
             while (state.analysisId === myAnalysisId) {
-                // Determine next query
-                const nextStep = await decideNextStep(state.intent, state.summary, state.searchHistory, config, true);
+                // Determine next query if not already determined
+                if (!nextStep) {
+                    nextStep = await decideNextStep(state.intent, state.summary, state.searchHistory, config, true);
+                }
 
                 if (state.analysisId !== myAnalysisId) return;
 
@@ -219,6 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.loading = false;
                     updateUI(tabId);
                 }
+
+                // Reset nextStep for the next iteration
+                nextStep = null;
 
                 // Wait before next iteration (e.g. 15s)
                 for (let i = 0; i < 15; i++) {
@@ -367,9 +377,12 @@ async function inferIntentAndQueries(pageData, config) {
     const systemPrompt = `あなたはユーザーのブラウジングを支援するAIです。
 ユーザーは現在、以下の内容のウェブページを見ています。
 このページを見ているユーザーが、次に知りたいと思うであろう情報や、疑問に思うであろう点を推測してください。
+また、その意図に基づいて、最初に検索すべきクエリも提案してください。
+
 出力は以下のJSON形式のみ:
 {
-  "intent": "ユーザーの意図や知りたいことの簡潔な説明"
+  "intent": "ユーザーの意図や知りたいことの簡潔な説明",
+  "query": "最初の検索クエリ"
 }`;
     const userPrompt = `--- ページ情報 ---
 タイトル: ${pageData.title || ''}
@@ -384,7 +397,7 @@ ${(pageData.content || '').substring(0, 10000)}`;
         const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(jsonStr);
     } catch (e) {
-        return { intent: "情報の分析中..." };
+        return { intent: "情報の分析中...", query: "" };
     }
 }
 
