@@ -42,6 +42,15 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
 
     // Error
     if (state.error) {
+        if (state.error === "このページは分析できません。") {
+            // Show as status message instead of error
+            elements.loading.style.display = 'flex';
+            elements.loadingText.textContent = state.error;
+            elements.errorDiv.style.display = 'none';
+            elements.resultsArea.style.display = 'none';
+            return;
+        }
+
         elements.errorMsg.textContent = state.error;
         elements.errorDiv.style.display = 'block';
         elements.loading.style.display = 'none';

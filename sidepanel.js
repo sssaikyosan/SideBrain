@@ -283,7 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (state.analysisId === myAnalysisId) {
                 console.error(err);
-                state.error = err.message;
+                // Show friendly message for known errors
+                if (err.message === 'このページは分析できません。' || err.message === 'タブが見つかりません。' || err.message.includes('分析できません')) {
+                    state.error = "このページは分析できません。";
+                } else {
+                    state.error = err.message;
+                }
                 state.loading = false;
                 updateUI(tabId, currentTabId);
             }
