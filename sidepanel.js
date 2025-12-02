@@ -274,8 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset nextStep for the next iteration
                 nextStep = null;
 
-                // Wait before next iteration (e.g. 15s)
-                for (let i = 0; i < 15; i++) {
+                // Wait before next iteration (e.g. 1s)
+                // Removed long wait as requested
+                for (let i = 0; i < 1; i++) {
                     if (state.analysisId !== myAnalysisId || signal.aborted) return;
                     await new Promise(r => setTimeout(r, 1000));
                 }
