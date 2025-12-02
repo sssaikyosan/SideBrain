@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (changeInfo.status === 'complete') {
             // Start analysis if not already running or if reset
             if (!tabStates[tabId] || !tabStates[tabId].isAnalyzing) {
-                startAnalysisLoop(tabId);
+                startAnalysisLoop(tabId, tab.url);
             }
         }
     });
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.tabs.get(currentTabId, (tab) => {
             if (tab.status === 'complete') {
                 if (!tabStates[currentTabId]) {
-                    startAnalysisLoop(currentTabId);
+                    startAnalysisLoop(currentTabId, tab.url);
                 }
             }
         });
@@ -94,8 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleTabChange(tabId) {
         if (!tabStates[tabId]) {
-            resetTabState(tabId);
-            startAnalysisLoop(tabId);
+            chrome.tabs.get(tabId, (tab) => {
+                if (tab && tab.url) {
+                    resetTabState(tabId);
+                    startAnalysisLoop(tabId, tab.url);
+                }
+            });
         } else {
             updateUI(tabId);
         }
@@ -155,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function startAnalysisLoop(tabId) {
+    async function startAnalysisLoop(tabId, expectedUrl) {
         // Initialize state if needed
         if (!tabStates[tabId]) resetTabState(tabId);
 
@@ -168,16 +172,15 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI(tabId);
 
         let config;
-        let pageContent;
 
         try {
             // 1. Initial Setup
             config = await getConfig();
             validateConfig(config);
-            pageContent = await getPageContent(tabId);
+            const pageData = await getPageContent(tabId, expectedUrl);
 
             // 2. Initial Intent Inference
-            const intentData = await inferIntentAndQueries(pageContent, config);
+            const intentData = await inferIntentAndQueries(pageData, config);
 
             if (state.analysisId !== myAnalysisId) return; // Stop if reset happened
 
@@ -308,7 +311,7 @@ function validateConfig(config) {
     }
 }
 
-async function getPageContent(tabId) {
+async function getPageContent(tabId, expectedUrl) {
     // If tabId is provided, use it. Otherwise query active tab.
     let tab;
     if (tabId) {
@@ -327,17 +330,40 @@ async function getPageContent(tabId) {
         throw new Error('このページは分析できません。');
     }
 
-    const result = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => { return document.body.innerText; }
-    });
-    if (result && result[0] && result[0].result) {
-        return result[0].result.substring(0, 50000);
+    // Retry loop to ensure we get the content of the expected URL
+    for (let i = 0; i < 10; i++) {
+        const result = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+                const clone = document.body.cloneNode(true);
+                const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
+                scripts.forEach(s => s.remove());
+                const metaDesc = document.querySelector('meta[name="description"]');
+                return {
+                    content: clone.innerText.replace(/\s+/g, ' ').trim(),
+                    title: document.title,
+                    description: metaDesc ? metaDesc.content : '',
+                    url: window.location.href
+                };
+            }
+        });
+
+        if (result && result[0] && result[0].result) {
+            const data = result[0].result;
+            // If expectedUrl is provided, verify it matches.
+            // We check if the current page URL contains the expected URL or starts with it.
+            if (!expectedUrl || data.url === expectedUrl || data.url.startsWith(expectedUrl)) {
+                return data;
+            }
+        }
+        // Wait 500ms before retry
+        await new Promise(r => setTimeout(r, 500));
     }
-    throw new Error('ページの内容を取得できませんでした。');
+
+    throw new Error('ページの読み込みが完了しませんでした（URL不一致）。');
 }
 
-async function inferIntentAndQueries(pageText, config) {
+async function inferIntentAndQueries(pageData, config) {
     const systemPrompt = `あなたはユーザーのブラウジングを支援するAIです。
 ユーザーは現在、以下の内容のウェブページを見ています。
 このページを見ているユーザーが、次に知りたいと思うであろう情報や、疑問に思うであろう点を推測してください。
@@ -345,8 +371,14 @@ async function inferIntentAndQueries(pageText, config) {
 {
   "intent": "ユーザーの意図や知りたいことの簡潔な説明"
 }`;
-    const userPrompt = `--- ページ内容 (抜粋) ---
-${pageText}`;
+    const userPrompt = `--- ページ情報 ---
+タイトル: ${pageData.title || ''}
+URL: ${pageData.url || ''}
+説明: ${pageData.description || ''}
+
+--- ページ内容 (抜粋) ---
+${(pageData.content || '').substring(0, 10000)}`;
+
     const response = await callLLM(systemPrompt, userPrompt, config, true);
     try {
         const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
