@@ -59,7 +59,7 @@ export async function decideNextStep(intent, currentSummary, searchHistory, conf
     }
 }
 
-export async function updateSummary(currentSummary, newSearchResults, intent, config, signal) {
+export async function updateSummary(currentSummary, newSearchResults, intent, config, signal, onUpdate) {
     const systemPrompt = `あなたは優秀なリサーチャーです。
 ユーザーの意図: ${intent}
 現在の要約:
@@ -73,5 +73,5 @@ ${newSearchResults}
 回答は日本語で、読みやすく箇条書きなどを使って整理してください。
 以前の情報が古くなった場合は新しい情報で上書きしてください。`;
 
-    return await callLLM(systemPrompt, "", config, false, signal);
+    return await callLLM(systemPrompt, "", config, false, signal, onUpdate);
 }

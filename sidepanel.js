@@ -185,7 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Update Summary
                     state.statusMessage = "情報を要約中...";
                     updateUI(tabId, currentTabId);
-                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal);
+                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal, (partialSummary) => {
+                        state.summary = partialSummary;
+                        updateUI(tabId, currentTabId);
+                    });
 
                     state.loading = false; // 一旦完了
                     updateUI(tabId, currentTabId);

@@ -55,34 +55,42 @@ export async function performBrowserSearch(queries) {
     if (!query) return "";
 
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-    const searchTab = await chrome.tabs.create({ url: searchUrl, active: false });
 
     try {
-        await waitForTabLoad(searchTab.id);
-        const links = await chrome.scripting.executeScript({
-            target: { tabId: searchTab.id },
-            func: () => {
-                const results = [];
-                const h3s = document.querySelectorAll('h3');
-                for (const h3 of h3s) {
-                    const a = h3.closest('a');
-                    if (a && a.href && !a.href.startsWith('https://www.google.com/search')) {
-                        results.push({ title: h3.innerText, url: a.href });
-                    }
-                    if (results.length >= 3) break;
-                }
-                return results;
-            }
-        });
-        const searchResults = links[0].result;
-        chrome.tabs.remove(searchTab.id);
+        const response = await fetch(searchUrl);
+        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
 
-        if (!searchResults || searchResults.length === 0) return "検索結果なし";
+        const results = [];
+        const h3s = doc.querySelectorAll('h3');
+        for (const h3 of h3s) {
+            const a = h3.closest('a');
+            if (a) {
+                let url = a.getAttribute('href');
+                if (url) {
+                    // Handle Google's redirect links if present
+                    if (url.startsWith('/url?q=')) {
+                        url = new URLSearchParams(url.split('?')[1]).get('q');
+                    } else if (url.startsWith('/')) {
+                        url = 'https://www.google.com' + url;
+                    }
+
+                    if (url && !url.startsWith('https://www.google.com/search') && url.startsWith('http')) {
+                        results.push({ title: h3.innerText, url: url });
+                    }
+                }
+            }
+            if (results.length >= 3) break;
+        }
+
+        if (results.length === 0) return "検索結果なし";
 
         let combinedText = `--- Query: ${query} ---\n`;
 
         // Fetch all pages in parallel
-        const contentPromises = searchResults.map(async (item) => {
+        const contentPromises = results.map(async (item) => {
             let itemText = `\nTitle: ${item.title}\nURL: ${item.url}\n`;
             try {
                 const content = await fetchPageContent(item.url);
@@ -98,52 +106,29 @@ export async function performBrowserSearch(queries) {
 
         return combinedText;
     } catch (err) {
-        chrome.tabs.remove(searchTab.id).catch(() => { });
         throw err;
     }
 }
 
-async function waitForTabLoad(tabId) {
-    return new Promise((resolve) => {
-        const listener = (tid, changeInfo) => {
-            if (tid === tabId && changeInfo.status === 'complete') {
-                chrome.tabs.onUpdated.removeListener(listener);
-                resolve();
-            }
-        };
-        chrome.tabs.onUpdated.addListener(listener);
-    });
-}
-
 async function fetchPageContent(url, retries = 3) {
-    const tab = await chrome.tabs.create({ url: url, active: false });
-    try {
-        for (let i = 0; i < retries; i++) {
-            try {
-                await waitForTabLoad(tab.id);
-                const result = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: () => {
-                        const clone = document.body.cloneNode(true);
-                        const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
-                        scripts.forEach(s => s.remove());
-                        return clone.innerText.replace(/\s+/g, ' ').trim();
-                    }
-                });
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
 
-                if (result && result[0] && result[0].result) {
-                    return result[0].result;
-                }
-                throw new Error("Empty content");
-            } catch (e) {
-                if (i === retries - 1) throw e;
-                // Wait before retry (e.g., 2s, 4s, 8s)
-                await new Promise(r => setTimeout(r, 2000 * Math.pow(2, i)));
-                // Reload tab to try again
-                await chrome.tabs.reload(tab.id);
-            }
+            const scripts = doc.querySelectorAll('script, style, noscript, iframe, svg');
+            scripts.forEach(s => s.remove());
+
+            // bodyがない場合もあるのでチェック
+            const content = doc.body ? doc.body.innerText : doc.documentElement.innerText;
+            return content.replace(/\s+/g, ' ').trim();
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            // Wait before retry
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
         }
-    } finally {
-        chrome.tabs.remove(tab.id).catch(() => { });
     }
 }
