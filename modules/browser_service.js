@@ -112,6 +112,14 @@ export async function performBrowserSearch(queries) {
 
         // 5. 各ページの内容を同様にタブを開いて取得（並列処理はタブ制御が複雑になるため順次処理）
         for (const item of searchResults) {
+            // Check for downloadable file extensions to avoid auto-download
+            const skipExtensions = ['.pdf', '.zip', '.exe', '.dmg', '.iso', '.csv', '.xlsx', '.docx', '.pptx'];
+            const lowerUrl = item.url.toLowerCase();
+            if (skipExtensions.some(ext => lowerUrl.endsWith(ext))) {
+                combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Downloadable file)\n`;
+                continue;
+            }
+
             let itemText = `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\n`;
             try {
                 // ページ用タブを作成
