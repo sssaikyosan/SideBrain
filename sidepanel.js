@@ -96,6 +96,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function verifyContentChange(tabId, expectedUrl, originalContent, analysisId) {
+        // Wait 2 seconds to allow for dynamic content loading
+        await new Promise(r => setTimeout(r, 2000));
+
+        const state = getTabState(tabId);
+        // If analysisId changed (e.g. user navigated again or another reset happened), abort.
+        if (!state || state.analysisId !== analysisId) return;
+
+        try {
+            const newPageData = await getPageContent(tabId, expectedUrl);
+
+            // Check if content changed
+            if (newPageData.content !== originalContent) {
+                console.log(`[Content Change Detected] Resetting analysis for tab ${tabId}`);
+
+                // Reset state
+                resetTabState(tabId);
+
+                // Update UI to show restarting status
+                const newState = getTabState(tabId);
+                newState.statusMessage = "ページ内容の変化を検知。再分析します...";
+                updateUI(tabId, currentTabId);
+
+                // Restart analysis
+                startAnalysisLoop(tabId, expectedUrl);
+            }
+        } catch (e) {
+            console.warn("Content verification failed:", e);
+        }
+    }
+
     async function startAnalysisLoop(tabId, expectedUrl) {
         // Initialize state if needed
         if (!getTabState(tabId)) resetTabState(tabId);
@@ -135,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.statusMessage = "ページ内容を取得中...";
                 updateUI(tabId, currentTabId);
                 const pageData = await getPageContent(tabId, expectedUrl);
+
+                // Start background verification for content changes
+                verifyContentChange(tabId, expectedUrl, pageData.content, myAnalysisId);
 
                 // 2. Initial Intent Inference
                 state.statusMessage = "ユーザーの意図を推論中...";
