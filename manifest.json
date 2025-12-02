@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "SideBrain",
+    "version": "1.0",
+    "description": "Automatically infers user needs from the current page, searches the web, and provides a summary.",
+    "permissions": [
+        "sidePanel",
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "*://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "action": {
+        "default_title": "Open Contextual Assistant"
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": false
+    }
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SideBrain</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="panel-container">
+        <div id="resultsArea" style="display: none;">
+            <div class="card" style="padding: 0; border: none; background: none; box-shadow: none;">
+                <button id="toggleIntentBtn" class="action-btn"
+                    style="width: 100%; text-align: left; padding: 8px 12px; margin: 0; display: flex; justify-content: space-between; align-items: center; border-radius: 8px;">
+                    <span>推測された意図を表示</span>
+                    <span id="toggleIcon">▼</span>
+                </button>
+                <div id="intentContent" class="result-content"
+                    style="display: none; padding: 12px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; margin-top: -4px;">
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="summaryContent" class="result-content"></div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <span>処理中...</span>
+        </div>
+
+        <div id="error" class="card" style="display: none; border-color: #cf6679;">
+            <h2 style="color: #cf6679;">エラー</h2>
+            <p id="errorMsg" style="color: var(--text-color);"></p>
+            <button id="settingsBtn" class="action-btn">設定を開く</button>
+        </div>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>
