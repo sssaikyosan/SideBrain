@@ -52,6 +52,30 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
     if (state.intent || state.summary) {
         elements.resultsArea.style.display = 'block';
 
+        // Configure marked to open links in new tab
+        const renderer = new marked.Renderer();
+        const originalLinkRenderer = renderer.link;
+        renderer.link = function ({ href, title, text }) {
+            // marked v5+ passes an object as the first argument
+            // However, older versions or different builds might pass arguments directly.
+            // Let's handle both cases or just stick to standard signature if we are sure about version.
+            // The imported marked.esm.js seems to be a recent version.
+            // Let's try to be robust.
+            let linkHref = href;
+            let linkTitle = title;
+            let linkText = text;
+
+            // If the first argument is an object (token), extract properties
+            if (typeof href === 'object' && href !== null) {
+                linkHref = href.href;
+                linkTitle = href.title;
+                linkText = href.text;
+            }
+
+            return `<a href="${linkHref}" title="${linkTitle || ''}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        };
+        marked.setOptions({ renderer: renderer });
+
         // Intent
         elements.intentContent.innerHTML = marked.parse(state.intent || "");
         if (state.intentVisible) {
@@ -77,6 +101,24 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
                 elements.summaryContent.classList.add('flash-update');
             }
         }
+
+        // Add click listeners to all links in resultsArea to ensure they open in new tab
+        const links = elements.resultsArea.querySelectorAll('a');
+        links.forEach(link => {
+            // Check if listener is already attached
+            if (link.dataset.listenerAttached === 'true') return;
+
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const url = link.getAttribute('href');
+                if (url) {
+                    chrome.tabs.create({ url: url });
+                }
+            });
+
+            // Mark as attached
+            link.dataset.listenerAttached = 'true';
+        });
     } else {
         elements.resultsArea.style.display = 'none';
     }

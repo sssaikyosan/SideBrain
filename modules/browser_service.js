@@ -54,58 +54,113 @@ export async function performBrowserSearch(queries) {
     const query = queries[0];
     if (!query) return "";
 
+    // Google検索を使用
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 
     try {
-        const response = await fetch(searchUrl);
-        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, 'text/html');
+        // 1. 検索結果ページをバックグラウンドタブで開く
+        const searchTab = await chrome.tabs.create({ url: searchUrl, active: false });
 
-        const results = [];
-        const h3s = doc.querySelectorAll('h3');
-        for (const h3 of h3s) {
-            const a = h3.closest('a');
-            if (a) {
-                let url = a.getAttribute('href');
-                if (url) {
-                    // Handle Google's redirect links if present
-                    if (url.startsWith('/url?q=')) {
-                        url = new URLSearchParams(url.split('?')[1]).get('q');
-                    } else if (url.startsWith('/')) {
-                        url = 'https://www.google.com' + url;
-                    }
-
-                    if (url && !url.startsWith('https://www.google.com/search') && url.startsWith('http')) {
-                        results.push({ title: h3.innerText, url: url });
-                    }
+        // 2. ページ読み込み完了を待つ
+        await new Promise((resolve) => {
+            const listener = (tabId, changeInfo) => {
+                if (tabId === searchTab.id && changeInfo.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    resolve();
                 }
-            }
-            if (results.length >= 3) break;
-        }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+        });
 
-        if (results.length === 0) return "検索結果なし";
+        // 3. 検索結果を抽出
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: searchTab.id },
+            func: () => {
+                const items = [];
+                const h3s = document.querySelectorAll('h3');
+                for (const h3 of h3s) {
+                    const a = h3.closest('a');
+                    if (a) {
+                        let url = a.getAttribute('href');
+                        if (url) {
+                            // GoogleのリダイレクトURLや内部リンクを処理
+                            if (url.startsWith('/url?q=')) {
+                                url = new URLSearchParams(url.split('?')[1]).get('q');
+                            } else if (url.startsWith('/')) {
+                                // 内部リンクは除外（または必要なら絶対パス化）
+                                continue;
+                            }
+
+                            if (url && url.startsWith('http') && !url.includes('google.com/search')) {
+                                items.push({ title: h3.innerText, url: url });
+                            }
+                        }
+                    }
+                    if (items.length >= 3) break;
+                }
+                return items;
+            }
+        });
+
+        // 4. 検索タブを閉じる
+        await chrome.tabs.remove(searchTab.id);
+
+        const searchResults = results[0].result;
+        if (!searchResults || searchResults.length === 0) return "検索結果なし";
 
         let combinedText = `--- Query: ${query} ---\n`;
 
-        // Fetch all pages in parallel
-        const contentPromises = results.map(async (item) => {
-            let itemText = `\nTitle: ${item.title}\nURL: ${item.url}\n`;
+        // 5. 各ページの内容を同様にタブを開いて取得（並列処理はタブ制御が複雑になるため順次処理）
+        for (const item of searchResults) {
+            let itemText = `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\n`;
             try {
-                const content = await fetchPageContent(item.url);
-                itemText += `Content: ${content.substring(0, 2000)}...\n`;
-            } catch (e) {
-                itemText += `Content: (取得失敗) ${e.message}\n`;
-            }
-            return itemText;
-        });
+                // ページ用タブを作成
+                const pageTab = await chrome.tabs.create({ url: item.url, active: false });
 
-        const contents = await Promise.all(contentPromises);
-        combinedText += contents.join('');
+                // 読み込み待ち（タイムアウト付き）
+                await Promise.race([
+                    new Promise(resolve => {
+                        const listener = (tabId, changeInfo) => {
+                            if (tabId === pageTab.id && changeInfo.status === 'complete') {
+                                chrome.tabs.onUpdated.removeListener(listener);
+                                resolve();
+                            }
+                        };
+                        chrome.tabs.onUpdated.addListener(listener);
+                    }),
+                    new Promise(resolve => setTimeout(resolve, 10000)) // 10秒タイムアウト
+                ]);
+
+                // コンテンツ抽出
+                const contentResult = await chrome.scripting.executeScript({
+                    target: { tabId: pageTab.id },
+                    func: () => {
+                        const clone = document.body.cloneNode(true);
+                        const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
+                        scripts.forEach(s => s.remove());
+                        return clone.innerText.replace(/\s+/g, ' ').trim().substring(0, 2000);
+                    }
+                });
+
+                // タブを閉じる
+                await chrome.tabs.remove(pageTab.id);
+
+                if (contentResult && contentResult[0] && contentResult[0].result) {
+                    itemText += `Content: ${contentResult[0].result}...\n`;
+                } else {
+                    itemText += `Content: (取得失敗)\n`;
+                }
+
+            } catch (e) {
+                itemText += `Content: (エラー: ${e.message})\n`;
+            }
+            combinedText += itemText;
+        }
 
         return combinedText;
+
     } catch (err) {
+        console.error("Browser Search Error:", err);
         throw err;
     }
 }

@@ -15,7 +15,7 @@ body {
     color: var(--text-color);
     margin: 0;
     padding: 0;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .container {
@@ -130,7 +130,17 @@ button:active {
 }
 
 .result-content {
-    line-height: 1.6;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.result-content p {
+    margin: 0 0 6px 0;
+}
+
+.result-content p:last-child {
+    margin-bottom: 0;
 }
 
 .result-content ul {
@@ -140,6 +150,17 @@ button:active {
 
 .result-content li {
     margin-bottom: 4px;
+}
+
+.result-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.result-content a:hover {
+    text-decoration: underline;
+    opacity: 0.8;
 }
 
 .action-btn {
