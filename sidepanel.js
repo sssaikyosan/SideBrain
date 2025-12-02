@@ -1,7 +1,7 @@
 import { getConfig, validateConfig } from './modules/config.js';
 import { getPageContent, performBrowserSearch } from './modules/browser_service.js';
 import { inferIntentAndQueries, decideNextStep, updateSummary } from './modules/analysis_logic.js';
-import { tabStates, resetTabState, deleteTabState, getTabState } from './modules/state_store.js';
+import { tabStates, resetTabState, deleteTabState, getTabState, interruptAnalysis } from './modules/state_store.js';
 import { initUI, updateUI } from './modules/ui_controller.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (changeInfo.status === 'complete') {
             // Start analysis if not already running or if reset
             const state = getTabState(tabId);
-            if (!state || !state.isAnalyzing) {
+            // Only start if it's the current tab
+            if (tabId === currentTabId && (!state || !state.isAnalyzing)) {
                 startAnalysisLoop(tabId, tab.url);
             }
         }
@@ -45,13 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for tab activation
     chrome.tabs.onActivated.addListener((activeInfo) => {
         currentTabId = activeInfo.tabId;
+
+        // Interrupt all other tabs
+        for (const tid in tabStates) {
+            if (parseInt(tid) !== currentTabId) {
+                interruptAnalysis(tid);
+            }
+        }
+
         updateUI(currentTabId, currentTabId);
 
         // If no state exists for this tab (e.g. first visit since panel open), start analysis
         // We need to check if the tab is loaded.
         chrome.tabs.get(currentTabId, (tab) => {
             if (tab.status === 'complete') {
-                if (!getTabState(currentTabId)) {
+                const state = getTabState(currentTabId);
+                // Start if no state, OR if not analyzing (this covers resuming)
+                if (!state || !state.isAnalyzing) {
                     startAnalysisLoop(currentTabId, tab.url);
                 }
             }
@@ -81,47 +92,81 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!getTabState(tabId)) resetTabState(tabId);
 
         const state = getTabState(tabId);
+
+        // Renew AbortController if it was aborted (e.g. by interruption)
+        if (state.abortController.signal.aborted) {
+            state.abortController = new AbortController();
+        }
+
         const myAnalysisId = state.analysisId;
+        const signal = state.abortController.signal;
 
         state.isAnalyzing = true;
         state.loading = true;
-        state.statusMessage = "ページを分析中...";
         state.error = null;
+
+        // Check status to determine initial message
+        if (state.intent) {
+            state.statusMessage = "分析を継続します...";
+        } else {
+            state.statusMessage = "ページを分析中...";
+        }
         updateUI(tabId, currentTabId);
 
         let config;
 
         try {
             // 1. Initial Setup
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
             config = await getConfig();
             validateConfig(config);
 
-            state.statusMessage = "ページ内容を取得中...";
-            updateUI(tabId, currentTabId);
-            const pageData = await getPageContent(tabId, expectedUrl);
+            // If we don't have an intent yet, we need to fetch page content and infer it.
+            if (!state.intent) {
+                state.statusMessage = "ページ内容を取得中...";
+                updateUI(tabId, currentTabId);
+                const pageData = await getPageContent(tabId, expectedUrl);
 
-            // 2. Initial Intent Inference
-            state.statusMessage = "ユーザーの意図を推論中...";
-            updateUI(tabId, currentTabId);
-            const intentData = await inferIntentAndQueries(pageData, config);
+                // 2. Initial Intent Inference
+                state.statusMessage = "ユーザーの意図を推論中...";
+                updateUI(tabId, currentTabId);
+                const intentData = await inferIntentAndQueries(pageData, config, signal);
 
-            if (state.analysisId !== myAnalysisId) return; // Stop if reset happened
+                if (state.analysisId !== myAnalysisId) return; // Stop if reset happened
 
-            state.intent = intentData.intent;
-            updateUI(tabId, currentTabId);
-
-            let nextStep = null;
-            if (intentData.query) {
-                nextStep = { shouldSearch: true, query: intentData.query };
+                state.intent = intentData.intent;
+                // Save initial query to state so we can resume if interrupted here
+                if (intentData.query) {
+                    state.nextQuery = intentData.query;
+                }
+                updateUI(tabId, currentTabId);
             }
 
             // 3. Continuous Loop
+            // If resuming, we need to decide next step again or continue from where we left off.
+            let nextStep = null;
+
+            // If we have a pending query in state (from initial inference or previous loop), use it
+            if (state.nextQuery) {
+                nextStep = { shouldSearch: true, query: state.nextQuery };
+                state.nextQuery = null; // Clear it after picking it up
+            }
+
             while (state.analysisId === myAnalysisId) {
+                if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
                 // Determine next query if not already determined
                 if (!nextStep) {
-                    state.statusMessage = "次の調査ステップを検討中...";
-                    updateUI(tabId, currentTabId);
-                    nextStep = await decideNextStep(state.intent, state.summary, state.searchHistory, config, true);
+                    // If resuming and we have no history/summary, we MUST search.
+                    // decideNextStep might return false if it thinks we have nothing.
+                    // Let's force it to search if history is empty.
+                    if (state.searchHistory.length === 0 && !state.summary) {
+                        nextStep = { shouldSearch: true, query: state.intent };
+                    } else {
+                        state.statusMessage = "次の調査ステップを検討中...";
+                        updateUI(tabId, currentTabId);
+                        nextStep = await decideNextStep(state.intent, state.summary, state.searchHistory, config, true, signal);
+                    }
                 }
 
                 if (state.analysisId !== myAnalysisId) return;
@@ -140,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Update Summary
                     state.statusMessage = "情報を要約中...";
                     updateUI(tabId, currentTabId);
-                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config);
+                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal);
 
                     state.loading = false; // 一旦完了
                     updateUI(tabId, currentTabId);
@@ -160,15 +205,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Wait before next iteration (e.g. 15s)
                 for (let i = 0; i < 15; i++) {
-                    if (state.analysisId !== myAnalysisId) return;
-                    // カウントダウン表示などをしてもいいが、ここではシンプルに待機
-                    // state.statusMessage = `次の更新まで待機中... (${15-i})`;
-                    // updateUI(tabId, currentTabId);
+                    if (state.analysisId !== myAnalysisId || signal.aborted) return;
                     await new Promise(r => setTimeout(r, 1000));
                 }
             }
 
         } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Analysis aborted for tab', tabId);
+                return;
+            }
             if (state.analysisId === myAnalysisId) {
                 console.error(err);
                 state.error = err.message;

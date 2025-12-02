@@ -1,10 +1,10 @@
-export async function callLLM(systemPrompt, userPrompt, config, jsonMode) {
+export async function callLLM(systemPrompt, userPrompt, config, jsonMode, signal) {
     // Always use OpenAI Compatible (Local Model)
-    const responseText = await callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode);
+    const responseText = await callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode, signal);
     return responseText.replace(/^\s*<think>[\s\S]*?<\/think>/i, '').trim();
 }
 
-async function callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode) {
+async function callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode, signal) {
     let endpoint = config.openaiBaseUrl;
     if (!endpoint.endsWith('/chat/completions')) {
         if (endpoint.endsWith('/')) endpoint = endpoint.slice(0, -1);
@@ -23,7 +23,8 @@ async function callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode) 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${config.openaiApiKey || 'lm-studio'}`
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: signal
     });
     if (!response.ok) {
         let errMsg = response.statusText;

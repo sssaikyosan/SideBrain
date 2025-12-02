@@ -1,6 +1,6 @@
 import { callLLM } from './llm_client.js';
 
-export async function inferIntentAndQueries(pageData, config) {
+export async function inferIntentAndQueries(pageData, config, signal) {
     const systemPrompt = `あなたはユーザーのブラウジングを支援するAIです。
 ユーザーは現在、以下の内容のウェブページを見ています。
 このページを見ているユーザーが、次に知りたいと思うであろう情報や、疑問に思うであろう点を推測してください。
@@ -19,16 +19,17 @@ URL: ${pageData.url || ''}
 --- ページ内容 (抜粋) ---
 ${(pageData.content || '').substring(0, 10000)}`;
 
-    const response = await callLLM(systemPrompt, userPrompt, config, true);
+    const response = await callLLM(systemPrompt, userPrompt, config, true, signal);
     try {
         const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(jsonStr);
     } catch (e) {
+        if (e.name === 'AbortError') throw e;
         return { intent: "情報の分析中...", query: "" };
     }
 }
 
-export async function decideNextStep(intent, currentSummary, searchHistory, config, forceExploration = false) {
+export async function decideNextStep(intent, currentSummary, searchHistory, config, forceExploration = false, signal) {
     const systemPrompt = `あなたは自律的なリサーチャーです。
 ユーザーの意図: "${intent}"
 現在までの調査結果要約: "${currentSummary || '(まだありません)'}"
@@ -45,11 +46,12 @@ export async function decideNextStep(intent, currentSummary, searchHistory, conf
   "query": "検索クエリ"
 }`;
 
-    const response = await callLLM(systemPrompt, "", config, true);
+    const response = await callLLM(systemPrompt, "", config, true, signal);
     try {
         const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(jsonStr);
     } catch (e) {
+        if (e.name === 'AbortError') throw e;
         if (searchHistory.length === 0) {
             return { shouldSearch: true, query: intent };
         }
@@ -57,7 +59,7 @@ export async function decideNextStep(intent, currentSummary, searchHistory, conf
     }
 }
 
-export async function updateSummary(currentSummary, newSearchResults, intent, config) {
+export async function updateSummary(currentSummary, newSearchResults, intent, config, signal) {
     const systemPrompt = `あなたは優秀なリサーチャーです。
 ユーザーの意図: ${intent}
 現在の要約:
@@ -71,5 +73,5 @@ ${newSearchResults}
 回答は日本語で、読みやすく箇条書きなどを使って整理してください。
 以前の情報が古くなった場合は新しい情報で上書きしてください。`;
 
-    return await callLLM(systemPrompt, "", config, false);
+    return await callLLM(systemPrompt, "", config, false, signal);
 }
