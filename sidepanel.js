@@ -185,10 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Update Summary
                     state.statusMessage = "情報を要約中...";
                     updateUI(tabId, currentTabId);
-                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal, (partialSummary) => {
+
+                    // Use streaming only for the first summary generation
+                    const onSummaryUpdate = !state.summary ? (partialSummary) => {
                         state.summary = partialSummary;
-                        updateUI(tabId, currentTabId);
-                    });
+                        updateUI(tabId, currentTabId, { flash: false });
+                    } : undefined;
+
+                    state.summary = await updateSummary(state.summary, searchResults, state.intent, config, signal, onSummaryUpdate);
 
                     state.loading = false; // 一旦完了
                     updateUI(tabId, currentTabId);

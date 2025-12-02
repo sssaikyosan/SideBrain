@@ -24,7 +24,7 @@ export function initUI() {
     return elements;
 }
 
-export function updateUI(tabId, currentTabId) {
+export function updateUI(tabId, currentTabId, options = { flash: true }) {
     // Only update UI if the target tab is the currently active one
     if (tabId !== currentTabId) return;
 
@@ -53,7 +53,7 @@ export function updateUI(tabId, currentTabId) {
         elements.resultsArea.style.display = 'block';
 
         // Intent
-        elements.intentContent.innerHTML = marked.parse(state.intent);
+        elements.intentContent.innerHTML = marked.parse(state.intent || "");
         if (state.intentVisible) {
             elements.intentContent.style.display = 'block';
             elements.toggleIcon.textContent = '▲';
@@ -65,7 +65,18 @@ export function updateUI(tabId, currentTabId) {
         }
 
         // Summary
-        elements.summaryContent.innerHTML = marked.parse(state.summary);
+        const previousSummary = elements.summaryContent.innerHTML;
+        const newSummary = marked.parse(state.summary || "");
+
+        if (previousSummary !== newSummary) {
+            elements.summaryContent.innerHTML = newSummary;
+            // Apply flash effect if it's an update (not first load) AND flash is requested
+            if (previousSummary && options.flash) {
+                elements.summaryContent.classList.remove('flash-update');
+                void elements.summaryContent.offsetWidth; // Trigger reflow
+                elements.summaryContent.classList.add('flash-update');
+            }
+        }
     } else {
         elements.resultsArea.style.display = 'none';
     }

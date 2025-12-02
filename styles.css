@@ -153,3 +153,17 @@ button:active {
 .action-btn:hover {
     background-color: var(--input-bg);
 }
+
+@keyframes flash {
+    0% {
+        background-color: rgba(187, 134, 252, 0.2);
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+.flash-update {
+    animation: flash 1s ease-out;
+}
