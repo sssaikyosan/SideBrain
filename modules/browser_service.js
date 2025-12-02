@@ -50,9 +50,42 @@ export async function getPageContent(tabId, expectedUrl) {
     throw new Error('ページの読み込みが完了しませんでした（URL不一致）。');
 }
 
+// Rate Limiting Variables
+let lastSearchTime = 0;
+let searchTimestamps = []; // Store timestamps of recent searches
+const MIN_SEARCH_INTERVAL = 5000; // Minimum 5 seconds between searches
+const MAX_SEARCHES_PER_WINDOW = 10; // Max 10 searches...
+const TIME_WINDOW = 180000; // ...in 3 minutes
+const BURST_COOLDOWN = 120000; // Wait 2 minutes if limit reached
+
 export async function performBrowserSearch(queries) {
     const query = queries[0];
     if (!query) return "";
+
+    const now = Date.now();
+
+    // 1. Minimum Interval Check
+    const timeSinceLastSearch = now - lastSearchTime;
+    if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
+        const waitTime = MIN_SEARCH_INTERVAL - timeSinceLastSearch;
+        console.log(`Search interval limit. Waiting ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    // 2. Burst Limit Check (Sliding Window)
+    // Remove timestamps older than TIME_WINDOW
+    searchTimestamps = searchTimestamps.filter(t => Date.now() - t < TIME_WINDOW);
+
+    if (searchTimestamps.length >= MAX_SEARCHES_PER_WINDOW) {
+        console.warn(`Burst limit reached (${MAX_SEARCHES_PER_WINDOW} searches in 3 mins). Waiting ${BURST_COOLDOWN / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, BURST_COOLDOWN));
+        // Clear history after cooldown to allow fresh start
+        searchTimestamps = [];
+    }
+
+    // Update state
+    lastSearchTime = Date.now();
+    searchTimestamps.push(lastSearchTime);
 
     // Google検索を使用
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;

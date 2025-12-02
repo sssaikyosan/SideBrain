@@ -202,6 +202,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Determine next query if not already determined
                 if (!nextStep) {
+                    // Check search count limit (Initial + 2 updates = 3 searches max)
+                    if (state.searchCount >= 3) {
+                        state.loading = false;
+                        state.statusMessage = "分析完了";
+                        updateUI(tabId, currentTabId);
+                        break; // Exit loop
+                    }
+
                     // If resuming and we have no history/summary, we MUST search.
                     // decideNextStep might return false if it thinks we have nothing.
                     // Let's force it to search if history is empty.
@@ -225,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const searchResultData = await performBrowserSearch([nextStep.query]);
                     const searchResultsText = searchResultData.text;
                     state.searchHistory.push(nextStep.query);
+                    state.searchCount++; // Increment search count
 
                     if (state.analysisId !== myAnalysisId) return;
 

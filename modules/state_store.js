@@ -18,7 +18,8 @@ export function resetTabState(tabId) {
         loading: false,
         statusMessage: "待機中...",
         abortController: new AbortController(),
-        nextQuery: null
+        nextQuery: null,
+        searchCount: 0
     };
 }
 
