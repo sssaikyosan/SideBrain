@@ -12,7 +12,8 @@ export function resetTabState(tabId) {
         analysisId: (tabStates[tabId]?.analysisId || 0) + 1,
         intentVisible: false,
         error: null,
-        loading: false
+        loading: false,
+        statusMessage: "待機中..."
     };
 }
 

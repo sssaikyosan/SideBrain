@@ -80,15 +80,22 @@ export async function performBrowserSearch(queries) {
         if (!searchResults || searchResults.length === 0) return "検索結果なし";
 
         let combinedText = `--- Query: ${query} ---\n`;
-        for (const item of searchResults) {
-            combinedText += `\nTitle: ${item.title}\nURL: ${item.url}\n`;
+
+        // Fetch all pages in parallel
+        const contentPromises = searchResults.map(async (item) => {
+            let itemText = `\nTitle: ${item.title}\nURL: ${item.url}\n`;
             try {
                 const content = await fetchPageContent(item.url);
-                combinedText += `Content: ${content.substring(0, 2000)}...\n`;
+                itemText += `Content: ${content.substring(0, 2000)}...\n`;
             } catch (e) {
-                combinedText += `Content: (取得失敗) ${e.message}\n`;
+                itemText += `Content: (取得失敗) ${e.message}\n`;
             }
-        }
+            return itemText;
+        });
+
+        const contents = await Promise.all(contentPromises);
+        combinedText += contents.join('');
+
         return combinedText;
     } catch (err) {
         chrome.tabs.remove(searchTab.id).catch(() => { });

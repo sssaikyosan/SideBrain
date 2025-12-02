@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.isAnalyzing = true;
         state.loading = true;
+        state.statusMessage = "ページを分析中...";
         state.error = null;
         updateUI(tabId, currentTabId);
 
@@ -94,9 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Initial Setup
             config = await getConfig();
             validateConfig(config);
+
+            state.statusMessage = "ページ内容を取得中...";
+            updateUI(tabId, currentTabId);
             const pageData = await getPageContent(tabId, expectedUrl);
 
             // 2. Initial Intent Inference
+            state.statusMessage = "ユーザーの意図を推論中...";
+            updateUI(tabId, currentTabId);
             const intentData = await inferIntentAndQueries(pageData, config);
 
             if (state.analysisId !== myAnalysisId) return; // Stop if reset happened
@@ -113,6 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             while (state.analysisId === myAnalysisId) {
                 // Determine next query if not already determined
                 if (!nextStep) {
+                    state.statusMessage = "次の調査ステップを検討中...";
+                    updateUI(tabId, currentTabId);
                     nextStep = await decideNextStep(state.intent, state.summary, state.searchHistory, config, true);
                 }
 
@@ -120,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (nextStep.shouldSearch && nextStep.query) {
                     state.loading = true;
+                    state.statusMessage = `検索中: ${nextStep.query}`;
                     updateUI(tabId, currentTabId);
 
                     // Perform Search
@@ -129,8 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (state.analysisId !== myAnalysisId) return;
 
                     // Update Summary
+                    state.statusMessage = "情報を要約中...";
+                    updateUI(tabId, currentTabId);
                     state.summary = await updateSummary(state.summary, searchResults, state.intent, config);
-                    state.loading = false;
+
+                    state.loading = false; // 一旦完了
                     updateUI(tabId, currentTabId);
 
                 } else {
@@ -149,6 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Wait before next iteration (e.g. 15s)
                 for (let i = 0; i < 15; i++) {
                     if (state.analysisId !== myAnalysisId) return;
+                    // カウントダウン表示などをしてもいいが、ここではシンプルに待機
+                    // state.statusMessage = `次の更新まで待機中... (${15-i})`;
+                    // updateUI(tabId, currentTabId);
                     await new Promise(r => setTimeout(r, 1000));
                 }
             }

@@ -1,4 +1,5 @@
 import { tabStates } from './state_store.js';
+import { marked } from '../libs/marked.esm.js';
 
 let elements = {};
 
@@ -8,6 +9,7 @@ export function initUI() {
         intentContent: document.getElementById('intentContent'),
         summaryContent: document.getElementById('summaryContent'),
         loading: document.getElementById('loading'),
+        loadingText: document.querySelector('#loading span'),
         errorDiv: document.getElementById('error'),
         errorMsg: document.getElementById('errorMsg'),
         settingsBtn: document.getElementById('settingsBtn'),
@@ -51,7 +53,7 @@ export function updateUI(tabId, currentTabId) {
         elements.resultsArea.style.display = 'block';
 
         // Intent
-        elements.intentContent.innerHTML = marked(state.intent);
+        elements.intentContent.innerHTML = marked.parse(state.intent);
         if (state.intentVisible) {
             elements.intentContent.style.display = 'block';
             elements.toggleIcon.textContent = '▲';
@@ -63,7 +65,7 @@ export function updateUI(tabId, currentTabId) {
         }
 
         // Summary
-        elements.summaryContent.innerHTML = marked(state.summary);
+        elements.summaryContent.innerHTML = marked.parse(state.summary);
     } else {
         elements.resultsArea.style.display = 'none';
     }
@@ -71,16 +73,8 @@ export function updateUI(tabId, currentTabId) {
     // Loading
     if (state.loading) {
         elements.loading.style.display = 'flex';
+        elements.loadingText.textContent = state.statusMessage || "処理中...";
     } else {
         elements.loading.style.display = 'none';
     }
-}
-
-function marked(text) {
-    let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
 }

@@ -1,0 +1,15 @@
+{
+  "name": "sidebrain",
+  "version": "1.0.0",
+  "description": "SideBrainは、あなたのWebブラウジングを支援するChrome拡張機能です。\r 閲覧中のページ内容をリアルタイムで分析し、あなたが次に知りたいであろう情報を推測。バックグラウンドで自律的にWeb検索を行い、関連情報を要約してサイドパネルに提示します。",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "marked": "^17.0.1"
+  }
+}
