@@ -120,14 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI(tabId, currentTabId);
 
                 // Restart analysis
-                startAnalysisLoop(tabId, expectedUrl);
+                startAnalysisLoop(tabId, expectedUrl, true);
             }
         } catch (e) {
             console.warn("Content verification failed:", e);
         }
     }
 
-    async function startAnalysisLoop(tabId, expectedUrl) {
+    async function startAnalysisLoop(tabId, expectedUrl, isRetry = false) {
         // Initialize state if needed
         if (!getTabState(tabId)) resetTabState(tabId);
 
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.intent) {
             state.statusMessage = "分析を継続します...";
         } else {
-            state.statusMessage = "ページを分析中...";
+            state.statusMessage = isRetry ? "ページ内容の変化を検知。再分析します..." : "ページを分析中...";
         }
         updateUI(tabId, currentTabId);
 
@@ -167,8 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI(tabId, currentTabId);
                 const pageData = await getPageContent(tabId, expectedUrl);
 
-                // Start background verification for content changes
-                verifyContentChange(tabId, expectedUrl, pageData.content, myAnalysisId);
+                // Start background verification for content changes ONLY if not a retry
+                if (!isRetry) {
+                    verifyContentChange(tabId, expectedUrl, pageData.content, myAnalysisId);
+                }
 
                 // 2. Initial Intent Inference
                 state.statusMessage = "ユーザーの意図を推論中...";
