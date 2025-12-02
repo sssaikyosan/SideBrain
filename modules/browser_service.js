@@ -54,7 +54,7 @@ export async function getPageContent(tabId, expectedUrl) {
 let lastSearchTime = 0;
 let searchTimestamps = []; // Store timestamps of recent searches
 const MIN_SEARCH_INTERVAL = 5000; // Minimum 5 seconds between searches
-const MAX_SEARCHES_PER_WINDOW = 10; // Max 10 searches...
+const MAX_SEARCHES_PER_WINDOW = 15; // Max 15 searches...
 const TIME_WINDOW = 180000; // ...in 3 minutes
 const BURST_COOLDOWN = 120000; // Wait 2 minutes if limit reached
 
