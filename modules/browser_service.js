@@ -113,9 +113,11 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
         });
 
         // 3. 検索結果を抽出
+        const maxPages = config.maxSearchPages || 3;
         const results = await chrome.scripting.executeScript({
             target: { tabId: searchTab.id },
-            func: () => {
+            args: [maxPages],
+            func: (maxPages) => {
                 const items = [];
                 const h3s = document.querySelectorAll('h3');
                 for (const h3 of h3s) {
@@ -136,7 +138,7 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
                             }
                         }
                     }
-                    if (items.length >= 3) break;
+                    if (items.length >= maxPages) break;
                 }
                 return items;
             }

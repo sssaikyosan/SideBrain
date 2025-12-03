@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'openaiModel',
     'maxContextSize',
     'maxSearchResultSize',
+    'maxSearchPages',
     'minSearchInterval',
     'maxSearchesPerWindow',
     'timeWindow',
@@ -37,15 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!items.maxContextSize) {
-      document.getElementById('maxContextSize').value = 16384;
+      document.getElementById('maxContextSize').value = 15000;
     } else {
       document.getElementById('maxContextSize').value = items.maxContextSize;
     }
 
     if (!items.maxSearchResultSize) {
-      document.getElementById('maxSearchResultSize').value = 8192;
+      document.getElementById('maxSearchResultSize').value = 5000;
     } else {
       document.getElementById('maxSearchResultSize').value = items.maxSearchResultSize;
+    }
+
+    if (!items.maxSearchPages) {
+      document.getElementById('maxSearchPages').value = 3;
+    } else {
+      document.getElementById('maxSearchPages').value = items.maxSearchPages;
     }
 
     // Rate Limiting
@@ -85,8 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let openaiApiKey = document.getElementById('openaiApiKey').value;
     const openaiModel = document.getElementById('openaiModel').value;
     const showApiKey = document.getElementById('showApiKey').checked;
-    const maxContextSize = parseInt(document.getElementById('maxContextSize').value, 10) || 16384;
-    const maxSearchResultSize = parseInt(document.getElementById('maxSearchResultSize').value, 10) || 8192;
+    const maxContextSize = parseInt(document.getElementById('maxContextSize').value, 10) || 15000;
+    const maxSearchResultSize = parseInt(document.getElementById('maxSearchResultSize').value, 10) || 5000;
+    const maxSearchPages = parseInt(document.getElementById('maxSearchPages').value, 10) || 3;
 
     // Rate Limiting
     const minSearchInterval = (parseFloat(document.getElementById('minSearchInterval').value) || 3) * 1000;
@@ -105,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       openaiModel,
       maxContextSize,
       maxSearchResultSize,
+      maxSearchPages,
       minSearchInterval,
       maxSearchesPerWindow,
       timeWindow,
