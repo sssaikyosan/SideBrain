@@ -53,10 +53,12 @@ export async function decideNextStep(intent, currentSummary, searchHistory, conf
 似たような検索を繰り返さず、視点を変えたクエリを提案してください。
 技術的なトピックや、より広範な情報を得るために有効な場合は、英語など他言語での検索クエリも積極的に検討してください。
 
+重要: 検索クエリは「文章」ではなく、検索エンジンで最も効果的な「3〜5語程度のキーワードの組み合わせ（スペース区切り）」にしてください。一度に全てを検索しようとせず、最も重要なトピックに絞ってください。
+
 出力は以下のJSON形式のみ:
 {
   "shouldSearch": true/false,
-  "query": "次に検索するクエリ（スペース区切り）"
+  "query": "次に検索するキーワードの組み合わせ（スペース区切り）"
 }`;
 
     const response = await callLLM(systemPrompt, "", config, true, signal);
