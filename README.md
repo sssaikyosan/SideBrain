@@ -18,9 +18,6 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 推奨環境:
 *   [LM Studio](https://lmstudio.ai/) (サーバー機能を使用)
 
-推奨モデル:
-*   Qwen3 4b 2507 (Q8_0)
-
 ## インストール方法
 
 1.  このリポジトリをクローンまたはダウンロードします。
@@ -37,6 +34,16 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
     *   LM Studioを起動し、Local Serverタブを開きます。
     *   "Start Server" をクリックしてサーバーを起動します。
     *   デフォルトのBase URLは `http://localhost:1234/v1` です。
+    *   **推奨設定**:
+        *   **Model**: `Qwen3 4b 2507` (Q8_0)
+        *   **Context Length**: `16384` 以上 (Webページの情報を多く読み込むため)
+        *   **GPU Offload**: `36` (Qwen3 4b 2507の場合)
+        *   **Flash Attention**: 有効化 (推奨)
+
+        *   ※VRAM不足でContext Lengthを確保できない場合
+            **K Cache Quantization** Q8_0
+            **V Cache Quantization** Q8_0
+
 
 2.  **拡張機能の設定**:
     *   ChromeのツールバーにあるSideBrainアイコンを右クリックし、「オプション」を選択するか、サイドパネル内の「設定を開く」ボタンをクリックします。
