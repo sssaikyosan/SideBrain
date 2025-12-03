@@ -3,10 +3,12 @@ export async function getConfig() {
         chrome.storage.local.get([
             'openaiBaseUrl',
             'openaiApiKey',
-            'openaiModel'
+            'openaiModel',
+            'debugMode'
         ], (items) => {
             if (!items.openaiBaseUrl) items.openaiBaseUrl = 'http://localhost:1234/v1';
             if (!items.openaiModel) items.openaiModel = 'local-model';
+            if (items.debugMode === undefined) items.debugMode = true; // Default to true for now
             items.llmProvider = 'openai';
             resolve(items);
         });

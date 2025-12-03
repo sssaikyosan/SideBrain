@@ -18,6 +18,15 @@ async function callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode, 
         ],
         stream: !!onUpdate
     };
+
+    // Debug Logging
+    if (config.debugMode) {
+        console.group('LLM Request');
+        console.log('System Prompt:', systemPrompt);
+        console.log('User Prompt:', userPrompt);
+        console.groupEnd();
+    }
+
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -73,9 +82,20 @@ async function callOpenAICompatible(systemPrompt, userPrompt, config, jsonMode, 
                 }
             }
         }
+        if (config.debugMode) {
+            console.group('LLM Response (Stream)');
+            console.log(fullText);
+            console.groupEnd();
+        }
         return fullText;
     } else {
         const data = await response.json();
-        return data.choices[0].message.content;
+        const content = data.choices[0].message.content;
+        if (config.debugMode) {
+            console.group('LLM Response');
+            console.log(content);
+            console.groupEnd();
+        }
+        return content;
     }
 }
