@@ -4,6 +4,13 @@ export async function getConfig() {
             'openaiBaseUrl',
             'openaiApiKey',
             'openaiModel',
+            'maxContextSize',
+            'maxSearchResultSize',
+            'maxSearchPages',
+            'minSearchInterval',
+            'maxSearchesPerWindow',
+            'timeWindow',
+            'burstCooldown',
             'debugMode'
         ], (items) => {
             if (!items.openaiBaseUrl) items.openaiBaseUrl = 'http://localhost:1234/v1';
