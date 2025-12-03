@@ -230,7 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUI(tabId, currentTabId);
 
                     // Perform Search
-                    const searchResultData = await performBrowserSearch([nextStep.query]);
+                    const searchResultData = await performBrowserSearch([nextStep.query], (msg) => {
+                        state.statusMessage = msg;
+                        updateUI(tabId, currentTabId);
+                    });
                     const searchResultsText = searchResultData.text;
                     state.searchHistory.push(nextStep.query);
                     state.searchCount++; // Increment search count

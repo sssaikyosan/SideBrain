@@ -53,12 +53,12 @@ export async function getPageContent(tabId, expectedUrl) {
 // Rate Limiting Variables
 let lastSearchTime = 0;
 let searchTimestamps = []; // Store timestamps of recent searches
-const MIN_SEARCH_INTERVAL = 5000; // Minimum 5 seconds between searches
+const MIN_SEARCH_INTERVAL = 3000; // Minimum 3 seconds between searches
 const MAX_SEARCHES_PER_WINDOW = 15; // Max 15 searches...
 const TIME_WINDOW = 180000; // ...in 3 minutes
 const BURST_COOLDOWN = 120000; // Wait 2 minutes if limit reached
 
-export async function performBrowserSearch(queries) {
+export async function performBrowserSearch(queries, onStatusUpdate) {
     const query = queries[0];
     if (!query) return "";
 
@@ -77,7 +77,11 @@ export async function performBrowserSearch(queries) {
     searchTimestamps = searchTimestamps.filter(t => Date.now() - t < TIME_WINDOW);
 
     if (searchTimestamps.length >= MAX_SEARCHES_PER_WINDOW) {
-        console.warn(`Burst limit reached (${MAX_SEARCHES_PER_WINDOW} searches in 3 mins). Waiting ${BURST_COOLDOWN / 1000} seconds...`);
+        const waitSeconds = BURST_COOLDOWN / 1000;
+        console.warn(`Burst limit reached (${MAX_SEARCHES_PER_WINDOW} searches in 3 mins). Waiting ${waitSeconds} seconds...`);
+        if (onStatusUpdate) {
+            onStatusUpdate(`検索頻度制限のため、約${Math.ceil(waitSeconds / 60)}分待機します...`);
+        }
         await new Promise(resolve => setTimeout(resolve, BURST_COOLDOWN));
         // Clear history after cooldown to allow fresh start
         searchTimestamps = [];
@@ -209,7 +213,7 @@ export async function performBrowserSearch(queries) {
     }
 }
 
-async function fetchPageContent(url, retries = 3) {
+async function fetchPageContent(url, retries = 5) {
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url);
