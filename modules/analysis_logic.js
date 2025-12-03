@@ -22,7 +22,7 @@ URL: ${pageData.url || ''}
 説明: ${pageData.description || ''}
 
 --- ページ内容 (抜粋) ---
-${(pageData.content || '').substring(0, 10000)}`;
+${(pageData.content || '').substring(0, config.maxContextSize || 16384)}`;
 
     const response = await callLLM(systemPrompt, userPrompt, config, true, signal);
     try {

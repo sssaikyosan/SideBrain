@@ -175,6 +175,10 @@ button:active {
     background-color: var(--input-bg);
 }
 
+.flash-update {
+    animation: flash 1s ease-out;
+}
+
 @keyframes flash {
     0% {
         background-color: rgba(187, 134, 252, 0.2);
@@ -185,6 +189,36 @@ button:active {
     }
 }
 
-.flash-update {
-    animation: flash 1s ease-out;
+/* Settings View Styles */
+.input-group {
+    margin-bottom: 16px;
+}
+
+input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-color);
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.2);
+}
+
+.action-btn.primary {
+    background: linear-gradient(90deg, var(--primary-color), #9965f4);
+    color: #000;
+    border: none;
+}
+
+.action-btn.primary:hover {
+    opacity: 0.9;
+    background: linear-gradient(90deg, var(--primary-color), #9965f4);
 }

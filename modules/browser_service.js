@@ -51,38 +51,41 @@ export async function getPageContent(tabId, expectedUrl) {
 }
 
 // Rate Limiting Variables
+// Rate Limiting Variables
 let lastSearchTime = 0;
 let searchTimestamps = []; // Store timestamps of recent searches
-const MIN_SEARCH_INTERVAL = 3000; // Minimum 3 seconds between searches
-const MAX_SEARCHES_PER_WINDOW = 15; // Max 15 searches...
-const TIME_WINDOW = 180000; // ...in 3 minutes
-const BURST_COOLDOWN = 120000; // Wait 2 minutes if limit reached
 
-export async function performBrowserSearch(queries, onStatusUpdate) {
+export async function performBrowserSearch(queries, config, onStatusUpdate) {
     const query = queries[0];
     if (!query) return "";
+
+    // Config defaults
+    const minSearchInterval = config.minSearchInterval || 3000;
+    const maxSearchesPerWindow = config.maxSearchesPerWindow || 15;
+    const timeWindow = config.timeWindow || 180000;
+    const burstCooldown = config.burstCooldown || 120000;
 
     const now = Date.now();
 
     // 1. Minimum Interval Check
     const timeSinceLastSearch = now - lastSearchTime;
-    if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
-        const waitTime = MIN_SEARCH_INTERVAL - timeSinceLastSearch;
+    if (timeSinceLastSearch < minSearchInterval) {
+        const waitTime = minSearchInterval - timeSinceLastSearch;
         console.log(`Search interval limit. Waiting ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
     }
 
     // 2. Burst Limit Check (Sliding Window)
     // Remove timestamps older than TIME_WINDOW
-    searchTimestamps = searchTimestamps.filter(t => Date.now() - t < TIME_WINDOW);
+    searchTimestamps = searchTimestamps.filter(t => Date.now() - t < timeWindow);
 
-    if (searchTimestamps.length >= MAX_SEARCHES_PER_WINDOW) {
-        const waitSeconds = BURST_COOLDOWN / 1000;
-        console.warn(`Burst limit reached (${MAX_SEARCHES_PER_WINDOW} searches in 3 mins). Waiting ${waitSeconds} seconds...`);
+    if (searchTimestamps.length >= maxSearchesPerWindow) {
+        const waitSeconds = burstCooldown / 1000;
+        console.warn(`Burst limit reached (${maxSearchesPerWindow} searches in ${timeWindow / 60000} mins). Waiting ${waitSeconds} seconds...`);
         if (onStatusUpdate) {
             onStatusUpdate(`検索頻度制限のため、約${Math.ceil(waitSeconds / 60)}分待機します...`);
         }
-        await new Promise(resolve => setTimeout(resolve, BURST_COOLDOWN));
+        await new Promise(resolve => setTimeout(resolve, burstCooldown));
         // Clear history after cooldown to allow fresh start
         searchTimestamps = [];
     }
@@ -177,13 +180,15 @@ export async function performBrowserSearch(queries, onStatusUpdate) {
                 ]);
 
                 // コンテンツ抽出
+                const limit = (config && config.maxSearchResultSize) ? config.maxSearchResultSize : 8192;
                 const contentResult = await chrome.scripting.executeScript({
                     target: { tabId: pageTab.id },
-                    func: () => {
+                    args: [limit],
+                    func: (limit) => {
                         const clone = document.body.cloneNode(true);
                         const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
                         scripts.forEach(s => s.remove());
-                        return clone.innerText.replace(/\s+/g, ' ').trim().substring(0, 2000);
+                        return clone.innerText.replace(/\s+/g, ' ').trim().substring(0, limit);
                     }
                 });
 

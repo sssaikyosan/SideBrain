@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUI(tabId, currentTabId);
 
                     // Perform Search
-                    const searchResultData = await performBrowserSearch([nextStep.query], (msg) => {
+                    const searchResultData = await performBrowserSearch([nextStep.query], config, (msg) => {
                         state.statusMessage = msg;
                         updateUI(tabId, currentTabId);
                     });

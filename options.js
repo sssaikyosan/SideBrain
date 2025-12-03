@@ -3,7 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get([
     'openaiBaseUrl',
     'openaiApiKey',
-    'openaiModel'
+    'openaiModel',
+    'maxContextSize',
+    'maxSearchResultSize',
+    'minSearchInterval',
+    'maxSearchesPerWindow',
+    'timeWindow',
+    'burstCooldown'
   ], (items) => {
     // Default values for LM Studio
     if (!items.openaiBaseUrl) {
@@ -29,6 +35,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       document.getElementById('openaiModel').value = items.openaiModel;
     }
+
+    if (!items.maxContextSize) {
+      document.getElementById('maxContextSize').value = 16384;
+    } else {
+      document.getElementById('maxContextSize').value = items.maxContextSize;
+    }
+
+    if (!items.maxSearchResultSize) {
+      document.getElementById('maxSearchResultSize').value = 8192;
+    } else {
+      document.getElementById('maxSearchResultSize').value = items.maxSearchResultSize;
+    }
+
+    // Rate Limiting
+    document.getElementById('minSearchInterval').value = (items.minSearchInterval || 3000) / 1000;
+    document.getElementById('maxSearchesPerWindow').value = items.maxSearchesPerWindow || 15;
+    document.getElementById('timeWindow').value = (items.timeWindow || 180000) / 60000;
+    document.getElementById('burstCooldown').value = (items.burstCooldown || 120000) / 60000;
   });
 
   // Toggle API Key visibility
@@ -38,9 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKeyContainer.style.display = 'block';
     } else {
       apiKeyContainer.style.display = 'none';
-      // Optional: Clear API key when unchecked? No, user might just want to hide it.
-      // But if they uncheck, maybe they mean "don't use it".
-      // For now, just hide.
+    }
+  });
+
+  // Toggle Advanced Settings
+  const toggleAdvancedSettingsBtn = document.getElementById('toggleAdvancedSettingsBtn');
+  const advancedSettings = document.getElementById('advanced-settings');
+
+  toggleAdvancedSettingsBtn.addEventListener('click', () => {
+    if (advancedSettings.style.display === 'none') {
+      advancedSettings.style.display = 'block';
+      toggleAdvancedSettingsBtn.textContent = '▼ 詳細設定';
+    } else {
+      advancedSettings.style.display = 'none';
+      toggleAdvancedSettingsBtn.textContent = '▶ 詳細設定';
     }
   });
 
@@ -50,6 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let openaiApiKey = document.getElementById('openaiApiKey').value;
     const openaiModel = document.getElementById('openaiModel').value;
     const showApiKey = document.getElementById('showApiKey').checked;
+    const maxContextSize = parseInt(document.getElementById('maxContextSize').value, 10) || 16384;
+    const maxSearchResultSize = parseInt(document.getElementById('maxSearchResultSize').value, 10) || 8192;
+
+    // Rate Limiting
+    const minSearchInterval = (parseFloat(document.getElementById('minSearchInterval').value) || 3) * 1000;
+    const maxSearchesPerWindow = parseInt(document.getElementById('maxSearchesPerWindow').value, 10) || 15;
+    const timeWindow = (parseFloat(document.getElementById('timeWindow').value) || 3) * 60000;
+    const burstCooldown = (parseFloat(document.getElementById('burstCooldown').value) || 2) * 60000;
 
     if (!showApiKey) {
       openaiApiKey = '';
@@ -59,7 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
       llmProvider: 'openai', // Force provider to openai compatible
       openaiBaseUrl,
       openaiApiKey,
-      openaiModel
+      openaiModel,
+      maxContextSize,
+      maxSearchResultSize,
+      minSearchInterval,
+      maxSearchesPerWindow,
+      timeWindow,
+      burstCooldown
     }, () => {
       const status = document.getElementById('status');
       status.textContent = '設定を保存しました。';

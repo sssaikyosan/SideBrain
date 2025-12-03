@@ -41,6 +41,47 @@
       <input type="text" id="openaiModel" placeholder="e.g. local-model">
     </div>
 
+    <button id="toggleAdvancedSettingsBtn" class="action-btn"
+      style="margin-bottom: 16px; width: 100%; text-align: left;">
+      ▶ 詳細設定
+    </button>
+
+    <div id="advanced-settings"
+      style="display: none; padding-left: 12px; border-left: 2px solid var(--border-color); margin-bottom: 16px;">
+      <div class="form-group">
+        <label for="maxContextSize">最大読み取り文字数</label>
+        <input type="number" id="maxContextSize" placeholder="16384">
+        <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;"></p>
+      </div>
+      <div class="form-group">
+        <label for="maxSearchResultSize">検索結果1ページあたりの最大読み取り文字数</label>
+        <input type="number" id="maxSearchResultSize" placeholder="8192">
+        <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;"></p>
+      </div>
+
+      <h3 style="font-size: 14px; color: var(--primary-color); margin-top: 24px; margin-bottom: 12px;">アクセス制限設定</h3>
+
+      <div class="form-group">
+        <label for="minSearchInterval">最小検索間隔 (秒)</label>
+        <input type="number" id="minSearchInterval" placeholder="3">
+      </div>
+
+      <div class="form-group">
+        <label for="maxSearchesPerWindow">最大検索回数 (回)</label>
+        <input type="number" id="maxSearchesPerWindow" placeholder="15">
+      </div>
+
+      <div class="form-group">
+        <label for="timeWindow">制限判定期間 (分)</label>
+        <input type="number" id="timeWindow" placeholder="3">
+      </div>
+
+      <div class="form-group">
+        <label for="burstCooldown">制限超過時の待機時間 (分)</label>
+        <input type="number" id="burstCooldown" placeholder="2">
+      </div>
+    </div>
+
     <button id="saveBtn">保存</button>
     <div id="status"></div>
   </div>
