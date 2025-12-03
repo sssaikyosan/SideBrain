@@ -297,7 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(err);
                 // Show friendly message for known errors
                 if (err.message === 'このページは分析できません。' || err.message === 'タブが見つかりません。' || err.message.includes('分析できません')) {
-                    state.error = "このページは分析できません。";
+                    // Don't show error for unsupported pages, just stop loading
+                    state.loading = false;
+                    state.statusMessage = ""; // Clear status
+                    // We might want to hide the results area too, but for now just stopping the spinner is enough.
+                    // Or we can set a specific flag to hide UI elements if needed.
                 } else {
                     state.error = err.message;
                 }
