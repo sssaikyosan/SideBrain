@@ -36,13 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for tab updates
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.status === 'loading' && changeInfo.url) {
+        // URL changed (covers both standard navigation and SPA)
+        if (changeInfo.url) {
             // Reset state for this tab on navigation
             resetTabState(tabId);
             if (tabId === currentTabId) updateUI(tabId, currentTabId);
         }
 
-        if (changeInfo.status === 'complete') {
+        // Start analysis if loading is complete OR if URL changed while already complete (SPA)
+        if (changeInfo.status === 'complete' || (changeInfo.url && tab.status === 'complete')) {
             // Start analysis if not already running or if reset
             const state = getTabState(tabId);
             // Only start if it's the current tab
