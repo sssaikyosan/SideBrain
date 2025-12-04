@@ -13,7 +13,7 @@ export async function getPageContent(tabId, expectedUrl) {
     }
 
     if (!tab) throw new Error('タブが見つかりません。');
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('view-source:')) {
         throw new Error('このページは分析できません。');
     }
 

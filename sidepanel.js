@@ -294,15 +294,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             if (state.analysisId === myAnalysisId) {
-                console.error(err);
                 // Show friendly message for known errors
-                if (err.message === 'このページは分析できません。' || err.message === 'タブが見つかりません。' || err.message.includes('分析できません')) {
-                    // Don't show error for unsupported pages, just stop loading
+                if (err.message === 'このページは分析できません。' ||
+                    err.message === 'タブが見つかりません。' ||
+                    err.message.includes('分析できません') ||
+                    err.message.includes('Cannot access contents') ||
+                    err.message.includes('Extension context invalidated')
+                ) {
+                    // Don't log error for unsupported pages, just stop loading
                     state.loading = false;
-                    state.statusMessage = ""; // Clear status
-                    // We might want to hide the results area too, but for now just stopping the spinner is enough.
-                    // Or we can set a specific flag to hide UI elements if needed.
+                    state.statusMessage = "分析対象外のページです";
                 } else {
+                    console.error(err);
                     state.error = err.message;
                 }
                 state.loading = false;
