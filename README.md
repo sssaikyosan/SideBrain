@@ -53,5 +53,5 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 2.  *   Power User または Developer に設定します。
     <img width="468" height="169" alt="スクリーンショット 2025-12-05 041344" src="https://github.com/user-attachments/assets/3d3d0a29-44bc-42c3-b79f-1631aeb3a385" />
 
-3.  *   "Start Server" をクリックしてサーバーを起動します。
+3.  *   開発者タブに移動し、"Start Server" をクリックしてサーバーを起動します。
     <img width="338" height="214" alt="スクリーンショット 2025-12-05 040934" src="https://github.com/user-attachments/assets/7a6fe325-5254-4b95-a1bf-2076de6d016c" />
