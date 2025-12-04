@@ -104,13 +104,7 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
 
         if (previousSummary !== newSummary) {
             elements.summaryContent.innerHTML = newSummary;
-            // Apply flash effect if it's an update (not first load) AND flash is requested
-            // We check if previousSummary is not empty to avoid flashing on initial load
-            if (previousSummary && previousSummary.trim() !== "" && options.flash) {
-                elements.summaryContent.classList.remove('flash-update');
-                void elements.summaryContent.offsetWidth; // Trigger reflow
-                elements.summaryContent.classList.add('flash-update');
-            }
+            // Flash effect removed as per user request
         }
 
         // References

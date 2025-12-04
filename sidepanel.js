@@ -268,13 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUI(tabId, currentTabId);
 
                 } else {
-                    // No search needed immediately, but we continue loop
-                    if (!state.summary) {
-                        state.summary = "追加の情報を収集中です...";
-                        updateUI(tabId, currentTabId);
-                    }
+                    // No search needed, analysis complete
                     state.loading = false;
+                    state.statusMessage = "分析完了";
                     updateUI(tabId, currentTabId);
+                    break; // Exit loop
                 }
 
                 // Reset nextStep for the next iteration
