@@ -50,11 +50,6 @@ export async function getPageContent(tabId, expectedUrl) {
     throw new Error('ページの読み込みが完了しませんでした（URL不一致）。');
 }
 
-// Rate Limiting Variables
-// Rate Limiting Variables
-let lastSearchTime = 0;
-let searchTimestamps = []; // Store timestamps of recent searches
-
 export async function performBrowserSearch(queries, config, onStatusUpdate) {
     const query = queries[0];
     if (!query) return "";
@@ -64,6 +59,11 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
     const maxSearchesPerWindow = config.maxSearchesPerWindow || 15;
     const timeWindow = config.timeWindow || 180000;
     const burstCooldown = config.burstCooldown || 120000;
+
+    // Load rate limiting state from storage
+    const storageKey = 'searchRateLimitState';
+    const storageData = await chrome.storage.local.get(storageKey);
+    let { lastSearchTime = 0, searchTimestamps = [] } = storageData[storageKey] || {};
 
     const now = Date.now();
 
@@ -77,7 +77,9 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
 
     // 2. Burst Limit Check (Sliding Window)
     // Remove timestamps older than TIME_WINDOW
-    searchTimestamps = searchTimestamps.filter(t => Date.now() - t < timeWindow);
+    // Re-fetch time after wait
+    const currentNow = Date.now();
+    searchTimestamps = searchTimestamps.filter(t => currentNow - t < timeWindow);
 
     if (searchTimestamps.length >= maxSearchesPerWindow) {
         const waitSeconds = burstCooldown / 1000;
@@ -93,6 +95,7 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
     // Update state
     lastSearchTime = Date.now();
     searchTimestamps.push(lastSearchTime);
+    await chrome.storage.local.set({ [storageKey]: { lastSearchTime, searchTimestamps } });
 
     // Google検索を使用
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
