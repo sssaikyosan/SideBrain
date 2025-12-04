@@ -21,10 +21,72 @@ export function initUI() {
     };
 
     elements.settingsBtn.addEventListener('click', () => {
-        chrome.runtime.openOptionsPage();
+        if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.openOptionsPage) {
+            browser.runtime.openOptionsPage();
+        } else {
+            chrome.runtime.openOptionsPage();
+        }
     });
 
     return elements;
+}
+
+function sanitizeHTML(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const allowedTags = new Set([
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li',
+        'blockquote', 'pre', 'code', 'a', 'strong', 'em', 'del', 'b', 'i',
+        'br', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'span', 'div'
+    ]);
+    const allowedAttributes = new Set(['href', 'title', 'target', 'rel', 'src', 'alt', 'class', 'id']);
+
+    // Remove dangerous tags completely
+    const forbiddenTags = ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'link', 'meta'];
+    forbiddenTags.forEach(tag => {
+        const elements = doc.body.querySelectorAll(tag);
+        elements.forEach(el => el.remove());
+    });
+
+    // Walk through all elements
+    const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
+    const nodesToUnwrap = [];
+
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+        const tagName = currentNode.tagName.toLowerCase();
+        if (!allowedTags.has(tagName)) {
+            nodesToUnwrap.push(currentNode);
+        } else {
+            // Check attributes
+            const attrs = Array.from(currentNode.attributes);
+            attrs.forEach(attr => {
+                if (!allowedAttributes.has(attr.name)) {
+                    currentNode.removeAttribute(attr.name);
+                } else if (['href', 'src'].includes(attr.name)) {
+                    // Sanitize URLs
+                    if (/^\s*javascript:/i.test(attr.value)) {
+                        currentNode.removeAttribute(attr.name);
+                    }
+                }
+            });
+        }
+        currentNode = walker.nextNode();
+    }
+
+    // Unwrap disallowed tags (keep content)
+    nodesToUnwrap.reverse().forEach(node => {
+        const parent = node.parentNode;
+        if (parent) {
+            while (node.firstChild) {
+                parent.insertBefore(node.firstChild, node);
+            }
+            parent.removeChild(node);
+        }
+    });
+
+    return doc.body.innerHTML;
 }
 
 export function updateUI(tabId, currentTabId, options = { flash: true }) {
@@ -57,27 +119,18 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
 
         // Configure marked to open links in new tab
         const renderer = new marked.Renderer();
-        const originalLinkRenderer = renderer.link;
         renderer.link = function ({ href, title, text }) {
-            // marked v5+ passes an object as the first argument
-            // However, older versions or different builds might pass arguments directly.
-            // Let's handle both cases or just stick to standard signature if we are sure about version.
-            // The imported marked.esm.js seems to be a recent version.
-            // Let's try to be robust.
             let linkHref = href;
             let linkTitle = title;
             let linkText = text;
 
-            // If the first argument is an object (token), extract properties
             if (typeof href === 'object' && href !== null) {
                 linkHref = href.href;
                 linkTitle = href.title;
                 linkText = href.text;
             }
 
-            // Disable auto-linking for raw URLs in text
-            // If the link text is exactly the same as the href (or very similar), it's likely an autolink.
-            // We want to keep explicit markdown links [text](url) but disable raw http://...
+            // Disable auto-linking for raw URLs
             if (linkText === linkHref || linkText === decodeURI(linkHref)) {
                 return linkText;
             }
@@ -87,7 +140,7 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
         marked.setOptions({ renderer: renderer });
 
         // Intent
-        elements.intentContent.innerHTML = marked.parse(state.intent || "");
+        elements.intentContent.innerHTML = sanitizeHTML(marked.parse(state.intent || ""));
         if (state.intentVisible) {
             elements.intentContent.style.display = 'block';
             elements.toggleIcon.textContent = '▲';
@@ -103,8 +156,7 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
         const newSummary = marked.parse(state.summary || "");
 
         if (previousSummary !== newSummary) {
-            elements.summaryContent.innerHTML = newSummary;
-            // Flash effect removed as per user request
+            elements.summaryContent.innerHTML = sanitizeHTML(newSummary);
         }
 
         // References
@@ -133,18 +185,16 @@ export function updateUI(tabId, currentTabId, options = { flash: true }) {
         // Add click listeners to all links in resultsArea to ensure they open in new tab
         const links = elements.resultsArea.querySelectorAll('a');
         links.forEach(link => {
-            // Check if listener is already attached
             if (link.dataset.listenerAttached === 'true') return;
 
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const url = link.getAttribute('href');
                 if (url) {
-                    chrome.tabs.create({ url: url });
+                    browser.tabs.create({ url: url });
                 }
             });
 
-            // Mark as attached
             link.dataset.listenerAttached = 'true';
         });
     } else {
