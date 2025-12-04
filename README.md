@@ -35,9 +35,9 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
     *   "Start Server" をクリックしてサーバーを起動します。
     *   デフォルトのBase URLは `http://localhost:1234/v1` です。
     *   **推奨設定**:
-        *   **Model**: `Qwen3 4b 2507` (Q8_0)
+        *   **Model**: `Qwen3 Vl 4B` (unslothのQ5_K_XL量子化版を特に推奨しておきます)
         *   **Context Length**: `16384` 以上 (Webページの情報を多く読み込むため)
-        *   **GPU Offload**: `36` (Qwen3 4b 2507の場合)
+        *   **GPU Offload**: `36` (最大値を推奨)
         *   **Flash Attention**: 有効化 (推奨)
 
         *   ※VRAM不足でContext Lengthを確保できない場合
