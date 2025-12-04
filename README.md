@@ -30,31 +30,22 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 
 ## 設定方法 (LM Studioの場合)
 
-1.  **LM Studioの準備**:
-    *   LM Studioを起動し、Local Serverタブを開きます。
-    *   "Start Server" をクリックしてサーバーを起動します。
-    *   デフォルトのBase URLは `http://localhost:1234/v1` です。
-    *   **推奨設定**:
-        *   **Model**: `Qwen3-VL-8B-Instruct` (unslothのQ5_K_XL量子化版を特に推奨しておきます)
+
+1.  * モデルを準備します
+        **推奨設定**:
+        *   **Model**: `Qwen3-VL-8B-Instruct`
+ (unslothのQ5_K_XL量子化版を特に推奨しておきます)
             VRAMが不足する場合は`Qwen3-VL-4B-Instruct`
         *   **Context Length**: `16384` 以上 (Webページの情報を多く読み込むため)
         *   **GPU Offload**: 最大値を推奨
         *   **Flash Attention**: 有効化 (推奨)
 
-        *   ※VRAM不足の場合
-            **K Cache Quantization** Q8_0
-            **V Cache Quantization** Q8_0
+        ※VRAM不足の場合
+        *   **K Cache Quantization** Q8_0
+        *   **V Cache Quantization** Q8_0
+            
+2.  *   Power User または Developer に設定します。
+    <img width="468" height="169" alt="スクリーンショット 2025-12-05 041344" src="https://github.com/user-attachments/assets/3d3d0a29-44bc-42c3-b79f-1631aeb3a385" />
 
-
-2.  **拡張機能の設定**:
-    *   ChromeのツールバーにあるSideBrainアイコンを右クリックし、「オプション」を選択するか、サイドパネル内の「設定を開く」ボタンをクリックします。
-    *   **Base URL**: `http://localhost:1234/v1` (デフォルト)
-    *   **Model Name**: `local-model` (または使用しているモデル名)
-    *   「保存」をクリックします。
-
-## 使い方
-
-1.  ChromeのツールバーにあるSideBrainアイコンをクリックし、「側方パネルを開く」を選択してサイドパネルを表示します。
-2.  任意のWebページにアクセスします。
-3.  SideBrainが自動的にページの分析を開始し、推測された意図と、それに基づく調査結果の要約を表示します。
-4.  ページを移動すると、自動的に新しいページの分析が始まります。
+3.  *   "Start Server" をクリックしてサーバーを起動します。
+    <img width="338" height="214" alt="スクリーンショット 2025-12-05 040934" src="https://github.com/user-attachments/assets/7a6fe325-5254-4b95-a1bf-2076de6d016c" />
