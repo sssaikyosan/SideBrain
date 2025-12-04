@@ -20,6 +20,8 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 
 ## インストール方法
 
+### Google Chrome
+
 1.  このリポジトリをクローンまたはダウンロードします。
     ```bash
     git clone https://github.com/sssaikyosan/SideBrain.git
@@ -27,6 +29,11 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 2.  Google Chromeを開き、アドレスバーに `chrome://extensions` と入力します。
 3.  右上の「デベロッパーモード」をオンにします。
 4.  「パッケージ化されていない拡張機能を読み込む」をクリックし、クローンした `sidebrain` フォルダを選択します。
+
+### Firefox
+
+1.  [GitHubのリリースページ (Releases)](https://github.com/sssaikyosan/SideBrain/releases) から最新の `.xpi` ファイルをダウンロードします。
+2.  Firefoxを開き、ダウンロードした `.xpi` ファイルをブラウザウィンドウにドラッグ＆ドロップしてインストールします。
 
 ## 設定方法 (LM Studioの場合)
 
