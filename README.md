@@ -33,7 +33,6 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
 ### Firefox
 
 1.  [GitHubのリリースページ (Releases)](https://github.com/sssaikyosan/SideBrain/releases) から最新の `.xpi` ファイルをダウンロードします。
-2.  Firefoxを開き、ダウンロードした `.xpi` ファイルをブラウザウィンドウにドラッグ＆ドロップしてインストールします。
 
 ## 設定方法 (LM Studioの場合)
 
