@@ -157,12 +157,33 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
 
         // 5. 各ページの内容を同様にタブを開いて取得（並列処理はタブ制御が複雑になるため順次処理）
         for (const item of searchResults) {
-            // Check for downloadable file extensions to avoid auto-download
+            // Check for downloadable file extensions and common patterns to avoid auto-download
             const skipExtensions = ['.pdf', '.zip', '.exe', '.dmg', '.iso', '.csv', '.xlsx', '.docx', '.pptx'];
             const lowerUrl = item.url.toLowerCase();
-            if (skipExtensions.some(ext => lowerUrl.endsWith(ext))) {
+            if (skipExtensions.some(ext => lowerUrl.endsWith(ext)) || lowerUrl.includes('@@download')) {
                 combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Downloadable file)\n`;
                 continue;
+            }
+
+            // Pre-check Content-Type via HEAD request to avoid opening download links
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(item.url, { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timeoutId);
+                const contentType = response.headers.get('content-type');
+                if (contentType && (
+                    contentType.includes('application/pdf') ||
+                    contentType.includes('application/zip') ||
+                    contentType.includes('application/octet-stream') ||
+                    contentType.includes('application/x-msdownload') ||
+                    contentType.includes('application/vnd.openxmlformats-officedocument')
+                )) {
+                    combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Content-Type ${contentType})\n`;
+                    continue;
+                }
+            } catch (e) {
+                // Ignore fetch errors and proceed to try opening tab (some sites block HEAD)
             }
 
             let itemText = `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\n`;
