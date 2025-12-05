@@ -6,11 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'openaiModel',
     'maxContextSize',
     'maxSearchResultSize',
-    'maxSearchPages',
-    'minSearchInterval',
-    'maxSearchesPerWindow',
-    'timeWindow',
-    'burstCooldown'
+    'maxSearchPages'
   ], (items) => {
     // Default values for LM Studio
     if (!items.openaiBaseUrl) {
@@ -54,12 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       document.getElementById('maxSearchPages').value = items.maxSearchPages;
     }
-
-    // Rate Limiting
-    document.getElementById('minSearchInterval').value = (items.minSearchInterval || 3000) / 1000;
-    document.getElementById('maxSearchesPerWindow').value = items.maxSearchesPerWindow || 15;
-    document.getElementById('timeWindow').value = (items.timeWindow || 180000) / 60000;
-    document.getElementById('burstCooldown').value = (items.burstCooldown || 120000) / 60000;
   });
 
   // Toggle API Key visibility
@@ -96,12 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxSearchResultSize = parseInt(document.getElementById('maxSearchResultSize').value, 10) || 5000;
     const maxSearchPages = parseInt(document.getElementById('maxSearchPages').value, 10) || 3;
 
-    // Rate Limiting
-    const minSearchInterval = (parseFloat(document.getElementById('minSearchInterval').value) || 3) * 1000;
-    const maxSearchesPerWindow = parseInt(document.getElementById('maxSearchesPerWindow').value, 10) || 15;
-    const timeWindow = (parseFloat(document.getElementById('timeWindow').value) || 3) * 60000;
-    const burstCooldown = (parseFloat(document.getElementById('burstCooldown').value) || 2) * 60000;
-
     if (!showApiKey) {
       openaiApiKey = '';
     }
@@ -113,11 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
       openaiModel,
       maxContextSize,
       maxSearchResultSize,
-      maxSearchPages,
-      minSearchInterval,
-      maxSearchesPerWindow,
-      timeWindow,
-      burstCooldown
+      maxSearchPages
     }, () => {
       const status = document.getElementById('status');
       status.textContent = '設定を保存しました。';

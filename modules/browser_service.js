@@ -64,47 +64,8 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
     if (!query) return "";
 
     // Config defaults
-    const minSearchInterval = config.minSearchInterval || 3000;
-    const maxSearchesPerWindow = config.maxSearchesPerWindow || 15;
-    const timeWindow = config.timeWindow || 180000;
-    const burstCooldown = config.burstCooldown || 120000;
+    // Rate limiting removed as requested
 
-    // Load rate limiting state from storage
-    const storageKey = 'searchRateLimitState';
-    const storageData = await chrome.storage.local.get(storageKey);
-    let { lastSearchTime = 0, searchTimestamps = [] } = storageData[storageKey] || {};
-
-    const now = Date.now();
-
-    // 1. Minimum Interval Check
-    const timeSinceLastSearch = now - lastSearchTime;
-    if (timeSinceLastSearch < minSearchInterval) {
-        const waitTime = minSearchInterval - timeSinceLastSearch;
-        console.log(`Search interval limit. Waiting ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
-
-    // 2. Burst Limit Check (Sliding Window)
-    // Remove timestamps older than TIME_WINDOW
-    // Re-fetch time after wait
-    const currentNow = Date.now();
-    searchTimestamps = searchTimestamps.filter(t => currentNow - t < timeWindow);
-
-    if (searchTimestamps.length >= maxSearchesPerWindow) {
-        const waitSeconds = burstCooldown / 1000;
-        console.warn(`Burst limit reached (${maxSearchesPerWindow} searches in ${timeWindow / 60000} mins). Waiting ${waitSeconds} seconds...`);
-        if (onStatusUpdate) {
-            onStatusUpdate(`検索頻度制限のため、約${Math.ceil(waitSeconds / 60)}分待機します...`);
-        }
-        await new Promise(resolve => setTimeout(resolve, burstCooldown));
-        // Clear history after cooldown to allow fresh start
-        searchTimestamps = [];
-    }
-
-    // Update state
-    lastSearchTime = Date.now();
-    searchTimestamps.push(lastSearchTime);
-    await chrome.storage.local.set({ [storageKey]: { lastSearchTime, searchTimestamps } });
 
     // Google検索を使用
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
