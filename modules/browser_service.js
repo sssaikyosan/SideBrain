@@ -129,24 +129,6 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
 
         // 5. 各ページの内容を同様にタブを開いて取得（並列処理はタブ制御が複雑になるため順次処理）
         for (const item of searchResults) {
-            // Check for downloadable file extensions and common patterns to avoid auto-download
-            const skipExtensions = [
-                '.pdf', '.zip', '.exe', '.dmg', '.iso', '.csv', '.xlsx', '.docx', '.pptx',
-                '.mp4', '.mp3', '.avi', '.mov', '.wmv', '.flv', '.mkv',
-                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
-                '.7z', '.rar', '.tar', '.gz', '.bz2', '.msi', '.apk', '.jar', '.bin'
-            ];
-            const lowerUrl = item.url.toLowerCase();
-            if (skipExtensions.some(ext => lowerUrl.endsWith(ext)) ||
-                lowerUrl.includes('@@download') ||
-                lowerUrl.includes('/download/') ||
-                lowerUrl.includes('?download=') ||
-                lowerUrl.includes('&download=')
-            ) {
-                combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Potential download link)\n`;
-                continue;
-            }
-
             // Strict Content-Type Check via HEAD request
             // If HEAD fails or returns non-HTML content, we skip the page to ensure 0 risk of download.
             try {

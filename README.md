@@ -41,7 +41,7 @@ SideBrainは、あなたのWebブラウジングを支援するChrome拡張機�
         **推奨設定**:
         *   **Model**: `Qwen3-VL-8B-Instruct`
  (unslothのQ5_K_XL量子化版を特に推奨しておきます)
-            VRAMが不足する場合は`Qwen3-VL-4B-Instruct`
+            VRAMが不足する場合や速度を重視する場合は`Qwen3-VL-4B-Instruct`
         *   **Context Length**: `16384` 以上 (Webページの情報を多く読み込むため)
         *   **GPU Offload**: 最大値を推奨
         *   **Flash Attention**: 有効化 (推奨)
