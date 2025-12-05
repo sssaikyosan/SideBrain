@@ -70,9 +70,10 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
     // Google検索を使用
     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 
+    let searchTab;
     try {
         // 1. 検索結果ページをバックグラウンドタブで開く
-        const searchTab = await chrome.tabs.create({ url: searchUrl, active: false });
+        searchTab = await chrome.tabs.create({ url: searchUrl, active: false });
 
         // 2. ページ読み込み完了を待つ
         await new Promise((resolve) => {
@@ -119,6 +120,7 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
 
         // 4. 検索タブを閉じる
         await chrome.tabs.remove(searchTab.id);
+        searchTab = null;
 
         const searchResults = results[0].result;
         if (!searchResults || searchResults.length === 0) return "検索結果なし";
@@ -157,9 +159,10 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
             }
 
             let itemText = `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\n`;
+            let pageTab;
             try {
                 // ページ用タブを作成
-                const pageTab = await chrome.tabs.create({ url: item.url, active: false });
+                pageTab = await chrome.tabs.create({ url: item.url, active: false });
 
                 // 読み込み待ち（タイムアウト付き）
                 await Promise.race([
@@ -188,9 +191,6 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
                     }
                 });
 
-                // タブを閉じる
-                await chrome.tabs.remove(pageTab.id);
-
                 if (contentResult && contentResult[0] && contentResult[0].result) {
                     itemText += `Content: ${contentResult[0].result}...\n`;
                 } else {
@@ -199,6 +199,14 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
 
             } catch (e) {
                 itemText += `Content: (エラー: ${e.message})\n`;
+            } finally {
+                if (pageTab) {
+                    try {
+                        await chrome.tabs.remove(pageTab.id);
+                    } catch (e) {
+                        // タブが既に閉じられている場合などは無視
+                    }
+                }
             }
             combinedText += itemText;
         }
@@ -209,6 +217,9 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
         };
 
     } catch (err) {
+        if (searchTab) {
+            try { await chrome.tabs.remove(searchTab.id); } catch (e) { }
+        }
         console.error("Browser Search Error:", err);
         throw err;
     }
