@@ -1,4 +1,8 @@
 chrome.action.onClicked.addListener((tab) => {
     // Open the side panel
-    chrome.sidePanel.open({ tabId: tab.id });
+    if (typeof browser !== 'undefined' && browser.sidebarAction) {
+        browser.sidebarAction.open();
+    } else if (chrome.sidePanel) {
+        chrome.sidePanel.open({ tabId: tab.id });
+    }
 });
