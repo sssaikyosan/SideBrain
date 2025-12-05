@@ -299,7 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     err.message === 'タブが見つかりません。' ||
                     err.message.includes('分析できません') ||
                     err.message.includes('Cannot access contents') ||
-                    err.message.includes('Extension context invalidated')
+                    err.message.includes('Extension context invalidated') ||
+                    err.message.includes('Missing host permission') ||
+                    err.message.includes('The extensions gallery cannot be scripted')
                 ) {
                     // Don't log error for unsupported pages, just stop loading
                     state.loading = false;

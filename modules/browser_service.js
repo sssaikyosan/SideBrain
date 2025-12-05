@@ -13,27 +13,36 @@ export async function getPageContent(tabId, expectedUrl) {
     }
 
     if (!tab) throw new Error('タブが見つかりません。');
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('view-source:')) {
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('moz-extension://') || tab.url.startsWith('view-source:') || tab.url.includes('addons.mozilla.org')) {
         throw new Error('このページは分析できません。');
     }
 
     // Retry loop to ensure we get the content of the expected URL
     for (let i = 0; i < 10; i++) {
-        const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                const clone = document.body.cloneNode(true);
-                const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
-                scripts.forEach(s => s.remove());
-                const metaDesc = document.querySelector('meta[name="description"]');
-                return {
-                    content: clone.innerText.replace(/\s+/g, ' ').trim(),
-                    title: document.title,
-                    description: metaDesc ? metaDesc.content : '',
-                    url: window.location.href
-                };
+        let result;
+        try {
+            result = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                    const clone = document.body.cloneNode(true);
+                    const scripts = clone.querySelectorAll('script, style, noscript, iframe, svg');
+                    scripts.forEach(s => s.remove());
+                    const metaDesc = document.querySelector('meta[name="description"]');
+                    return {
+                        content: clone.innerText.replace(/\s+/g, ' ').trim(),
+                        title: document.title,
+                        description: metaDesc ? metaDesc.content : '',
+                        url: window.location.href
+                    };
+                }
+            });
+        } catch (e) {
+            // Access denied errors (e.g. restricted domains in Firefox)
+            if (e.message.includes('Missing host permission') || e.message.includes('The extensions gallery cannot be scripted')) {
+                throw new Error('Cannot access contents: Restricted domain');
             }
-        });
+            console.warn("Script execution failed, retrying...", e);
+        }
 
         if (result && result[0] && result[0].result) {
             const data = result[0].result;
