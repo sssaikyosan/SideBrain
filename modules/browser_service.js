@@ -130,32 +130,50 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
         // 5. 各ページの内容を同様にタブを開いて取得（並列処理はタブ制御が複雑になるため順次処理）
         for (const item of searchResults) {
             // Check for downloadable file extensions and common patterns to avoid auto-download
-            const skipExtensions = ['.pdf', '.zip', '.exe', '.dmg', '.iso', '.csv', '.xlsx', '.docx', '.pptx'];
+            const skipExtensions = [
+                '.pdf', '.zip', '.exe', '.dmg', '.iso', '.csv', '.xlsx', '.docx', '.pptx',
+                '.mp4', '.mp3', '.avi', '.mov', '.wmv', '.flv', '.mkv',
+                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
+                '.7z', '.rar', '.tar', '.gz', '.bz2', '.msi', '.apk', '.jar', '.bin'
+            ];
             const lowerUrl = item.url.toLowerCase();
-            if (skipExtensions.some(ext => lowerUrl.endsWith(ext)) || lowerUrl.includes('@@download')) {
-                combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Downloadable file)\n`;
+            if (skipExtensions.some(ext => lowerUrl.endsWith(ext)) ||
+                lowerUrl.includes('@@download') ||
+                lowerUrl.includes('/download/') ||
+                lowerUrl.includes('?download=') ||
+                lowerUrl.includes('&download=')
+            ) {
+                combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Potential download link)\n`;
                 continue;
             }
 
-            // Pre-check Content-Type via HEAD request to avoid opening download links
+            // Strict Content-Type Check via HEAD request
+            // If HEAD fails or returns non-HTML content, we skip the page to ensure 0 risk of download.
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
                 const response = await fetch(item.url, { method: 'HEAD', signal: controller.signal });
                 clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: HTTP ${response.status})\n`;
+                    continue;
+                }
+
                 const contentType = response.headers.get('content-type');
-                if (contentType && (
-                    contentType.includes('application/pdf') ||
-                    contentType.includes('application/zip') ||
-                    contentType.includes('application/octet-stream') ||
-                    contentType.includes('application/x-msdownload') ||
-                    contentType.includes('application/vnd.openxmlformats-officedocument')
+                if (!contentType || (
+                    !contentType.includes('text/html') &&
+                    !contentType.includes('application/xhtml+xml') &&
+                    !contentType.includes('text/plain')
                 )) {
-                    combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Content-Type ${contentType})\n`;
+                    combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Invalid Content-Type ${contentType || 'unknown'})\n`;
                     continue;
                 }
             } catch (e) {
-                // Ignore fetch errors and proceed to try opening tab (some sites block HEAD)
+                // If HEAD request fails (timeout, network error, CORS, etc.), we SKIP the page.
+                // This is a "fail-safe" approach to prevent opening potential download links that might not support HEAD.
+                combinedText += `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\nContent: (Skipped: Pre-check failed - ${e.message})\n`;
+                continue;
             }
 
             let itemText = `\n--- Page Start ---\nTitle: ${item.title}\nSourceURL: ${item.url}\n`;
