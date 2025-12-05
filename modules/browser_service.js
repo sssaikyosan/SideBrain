@@ -133,7 +133,7 @@ export async function performBrowserSearch(queries, config, onStatusUpdate) {
             // If HEAD fails or returns non-HTML content, we skip the page to ensure 0 risk of download.
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
                 const response = await fetch(item.url, { method: 'HEAD', signal: controller.signal });
                 clearTimeout(timeoutId);
 
